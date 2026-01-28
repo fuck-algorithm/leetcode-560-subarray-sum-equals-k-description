@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* 色盲模式支持 */
+:root {
+  --color-positive: #3498db;
+  --color-negative: #e74c3c;
+  --color-zero: #95a5a6;
+  --color-highlight: #f1c40f;
+  --color-subarray: #2ecc71;
+  --color-hash-table-key: #3498db;
+  --color-hash-table-value: #9b59b6;
+  --color-pointer: #e74c3c;
+}
+
+.protanopia-mode {
+  --color-positive: #5d8aa8;
+  --color-negative: #e52b50;
+  --color-zero: #95a5a6;
+  --color-highlight: #ffbf00;
+  --color-subarray: #009900;
+  --color-hash-table-key: #00a86b;
+  --color-hash-table-value: #9a6324;
+  --color-pointer: #800080;
+}
+
+.deuteranopia-mode {
+  --color-positive: #5d8aa8;
+  --color-negative: #ff4040;
+  --color-zero: #95a5a6;
+  --color-highlight: #ffbf00;
+  --color-subarray: #009999;
+  --color-hash-table-key: #8a2be2;
+  --color-hash-table-value: #9a6324;
+  --color-pointer: #8a2be2;
+}
+
+.tritanopia-mode {
+  --color-positive: #ff7f50;
+  --color-negative: #e74c3c;
+  --color-zero: #95a5a6;
+  --color-highlight: #9acd32;
+  --color-subarray: #4682b4;
+  --color-hash-table-key: #ff7f50;
+  --color-hash-table-value: #556b2f;
+  --color-pointer: #ff1493;
+}
+
+/* 动画类 */
+@keyframes pulse-ring {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes slide-in {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.8);
+  }
+}
+
+@keyframes slideDown {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* 屏幕阅读器专用 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* 自定义滚动条 - 暗色主题 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* 按钮通用样式 */
+button {
+  transition: all 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .main-content {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 10px;
+  }
+  
+  .app-container > div {
+    padding: 15px;
+  }
+}
