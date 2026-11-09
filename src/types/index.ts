@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+export type AlgorithmType = 'brute-force' | 'prefix-sum' | 'hash-map';
+
 // 核心数据类型
 export interface ArrayElement {
   value: number;

@@ -26,7 +26,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
     if (!svgRef.current || elements.length === 0) return;
 
     const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
+    svg.selectAll('*').interrupt();
 
     // 创建容器组
     const container = svg
@@ -42,9 +42,12 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
     // 绘制元素
     const elementGroups = container
       .selectAll('g.element')
-      .data(elements)
-      .enter()
-      .append('g')
+      .data(elements, (d: any) => d.index)
+      .join(
+        (enter) => enter.append('g'),
+        (update) => update,
+        (exit) => exit.transition('exit').duration(180).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }),
+      )
       .attr('class', 'element')
       .attr('transform', (d, i) => {
         const x = i * (ANIMATION_CONFIG.ELEMENT_WIDTH + ANIMATION_CONFIG.ELEMENT_SPACING);
@@ -107,7 +110,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         .attr('x', ANIMATION_CONFIG.ELEMENT_WIDTH / 2)
         .attr('y', -15)
         .attr('text-anchor', 'middle')
-        .attr('fill', (d, i) => i <= currentIndex ? '#8b5cf6' : '#64748b')
+        .attr('fill', (d, i) => i <= currentIndex ? '#0d9488' : '#64748b')
         .attr('font-size', '14px')
         .attr('font-weight', (d, i) => i === currentIndex ? 'bold' : 'normal')
         .text((d, i) => {

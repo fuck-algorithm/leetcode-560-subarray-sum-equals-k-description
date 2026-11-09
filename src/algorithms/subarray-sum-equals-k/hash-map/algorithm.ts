@@ -1,4 +1,4 @@
-import { AnimationState, HashMapState, ArrayElement } from '@/types';
+import { AnimationState } from '@/types';
 import { createArrayElements, createAnnotation, getColorByValue } from '@/utils/animationUtils';
 import { COLORS } from '@/utils/constants';
 

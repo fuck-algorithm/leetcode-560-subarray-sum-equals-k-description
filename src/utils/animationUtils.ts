@@ -1,4 +1,4 @@
-import { ArrayElement, AnimationState } from '@/types';
+import { ArrayElement } from '@/types';
 import { COLORS, ANIMATION_CONFIG } from './constants';
 
 /**

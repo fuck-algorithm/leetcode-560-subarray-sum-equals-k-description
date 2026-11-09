@@ -1,5 +1,5 @@
-import { AnimationState, BruteForceState } from '@/types';
-import { createArrayElements, createAnnotation, getColorByValue, calculateSubarraySum } from '@/utils/animationUtils';
+import { AnimationState } from '@/types';
+import { createArrayElements, createAnnotation, getColorByValue } from '@/utils/animationUtils';
 import { COLORS } from '@/utils/constants';
 
 /**

@@ -37,7 +37,7 @@ export const HashTableVisualizer: React.FC<HashTableVisualizerProps> = ({ hashMa
         </div>
 
         {/* 查询逻辑说明 */}
-        {hashMapState.currentSum > 0 && (
+        {hashMapState && (
           <div style={{
             background: '#1e293b',
             borderRadius: '8px',
@@ -58,13 +58,13 @@ export const HashTableVisualizer: React.FC<HashTableVisualizerProps> = ({ hashMa
               lineHeight: '1.8',
             }}>
               <div style={{ marginBottom: '6px' }}>
-                💭 现在总和是 <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>{hashMapState.currentSum}</span>
+                💭 现在总和是 <span style={{ color: '#0d9488', fontWeight: 'bold' }}>{hashMapState.currentSum}</span>
               </div>
               <div style={{ marginBottom: '6px' }}>
                 💭 要找的和是 <span style={{ color: '#10b981', fontWeight: 'bold' }}>{k}</span>
               </div>
               <div style={{ marginBottom: '10px' }}>
-                💭 所以我需要找"之前总和是 <span style={{ color: '#ec4899', fontWeight: 'bold' }}>{hashMapState.targetKey}</span> 的位置"
+                💭 所以我需要找「之前总和是 <span style={{ color: '#ea580c', fontWeight: 'bold' }}>{hashMapState.targetKey}</span> 的位置」
               </div>
               <div style={{
                 padding: '10px',

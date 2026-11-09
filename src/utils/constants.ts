@@ -6,7 +6,7 @@ export const COLORS = {
   HIGHLIGHT: '#f1c40f',
   SUBARRAY: '#2ecc71',
   HASH_KEY: '#3498db',
-  HASH_VALUE: '#9b59b6',
+  HASH_VALUE: '#0891b2',
   POINTER: '#e74c3c',
   BACKGROUND: '#f8f9fa',
   BORDER: '#bdc3c7',
@@ -28,9 +28,9 @@ export const ANIMATION_CONFIG = {
 // 测试数据
 export const TEST_DATA = {
   BASIC: {
-    nums: [1, 2, 3, -2, 5, -3, 2, 1, -1, 4],
+    nums: [1, 2, 3, -2, 5],
     k: 3,
-    expectedCount: 9, // 正确答案：9个子数组和为3
+    expectedCount: 4, // 正确答案：4个子数组和为3
   },
   SIMPLE: {
     nums: [1, 1, 1],

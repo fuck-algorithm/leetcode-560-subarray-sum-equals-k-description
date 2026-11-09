@@ -96,6 +96,15 @@ const subarraySumSlice = createSlice({
       }
     },
 
+    setCurrentStep: (state, action: PayloadAction<number>) => {
+      state.currentStep = Math.max(0, action.payload);
+      state.isPlaying = false;
+    },
+
+    advanceCurrentStep: (state) => {
+      state.currentStep += 1;
+    },
+
     setPlaybackSpeed: (state, action: PayloadAction<number>) => {
       state.playbackSpeed = Math.max(0.5, Math.min(2.0, action.payload));
     },
@@ -129,6 +138,8 @@ export const {
   stepForward,
   stepBackward,
   setPlaybackSpeed,
+  setCurrentStep,
+  advanceCurrentStep,
   updateState,
   setInputData,
   updateComplexity,

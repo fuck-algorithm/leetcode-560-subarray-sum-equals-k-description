@@ -8,13 +8,11 @@ import {
   resetAnimation,
   stepForward,
   stepBackward,
-  setAlgorithm,
-  setPlaybackSpeed,
 } from '@/store/subarraySumSlice';
 
 export const ControlPanel: React.FC = () => {
   const dispatch = useDispatch();
-  const { isPlaying, currentAlgorithm, playbackSpeed, inputData, currentStep, animationState } =
+  const { isPlaying, inputData, currentStep, animationState } =
     useSelector((state: RootState) => state.subarraySum);
 
   const handlePlayPause = () => {
@@ -37,13 +35,6 @@ export const ControlPanel: React.FC = () => {
     dispatch(stepBackward());
   };
 
-  const handleAlgorithmChange = (algorithm: 'brute-force' | 'prefix-sum' | 'hash-map') => {
-    dispatch(setAlgorithm(algorithm));
-  };
-
-  const handleSpeedChange = (speed: number) => {
-    dispatch(setPlaybackSpeed(speed));
-  };
 
   return (
     <div className="control-panel" style={{
@@ -186,9 +177,9 @@ export const ControlPanel: React.FC = () => {
         onClick={handleReset}
         style={{
           padding: '14px 24px',
-          background: '#6366f1',
+          background: '#2563eb',
           color: 'white',
-          border: '2px solid #818cf8',
+          border: '2px solid #1d4ed8',
           borderRadius: '12px',
           cursor: 'pointer',
           display: 'flex',
@@ -199,11 +190,11 @@ export const ControlPanel: React.FC = () => {
           transition: 'all 0.2s',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#818cf8';
+          e.currentTarget.style.background = '#1d4ed8';
           e.currentTarget.style.transform = 'translateY(-2px)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#6366f1';
+          e.currentTarget.style.background = '#2563eb';
           e.currentTarget.style.transform = 'translateY(0)';
         }}
       >

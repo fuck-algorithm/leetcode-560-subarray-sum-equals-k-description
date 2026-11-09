@@ -28,7 +28,8 @@ export const SubarrayRangeVisualizer: React.FC<SubarrayRangeVisualizerProps> = (
     if (!svgRef.current || arrayLength === 0) return;
 
     const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
+    const root = svg.selectAll<SVGGElement, unknown>('g.range-layer').data([null]).join('g').attr('class', 'range-layer');
+    root.selectAll('*').interrupt('range');
 
     const margin = { top: 40, right: 40, bottom: 40, left: 40 };
     const innerWidth = width - margin.left - margin.right;
