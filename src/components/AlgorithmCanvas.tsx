@@ -14,7 +14,7 @@ const algorithmLabel = (step: AlgorithmStep): { id: string; text: string; x: num
   const first = arrayNodes[0];
   const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
   const arrayX = first?.x ?? 80;
-  const hashX = hashNodes[0]?.x ?? 900;
+  const hashX = hashNodes[0]?.x ?? 1000;
   return hashNodes.length > 0
     ? [{ id: 'array-label', text: '输入数组：逐项累加', x: arrayX, y: 126 }, { id: 'hash-label', text: '前缀和频次表：历史记录', x: hashX, y: 122 }]
     : [{ id: 'array-label', text: '输入数组：枚举连续区间', x: arrayX, y: 126 }];
@@ -102,7 +102,7 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
       .join((enter) => enter.append('rect').attr('class', 'answer-range').attr('height', 6).attr('rx', 2).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
     const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
     const arrayX = (index: number) => arrayNodes.find((node) => node.id === `array-${index}`)?.x ?? 100;
-    const rangeLaneStart = 360;
+    const rangeLaneStart = 420;
     ranges.attr('data-range-id', (range) => `answer-${range.start}-${range.end}`)
       .attr('x', (range) => arrayX(range.start) - 36)
       .attr('y', (_, index) => rangeLaneStart + index * 11)
@@ -122,7 +122,7 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
         item.append('text').attr('x', 17).attr('y', 10).attr('font-size', 11);
         return item;
       }, (update) => update, (exit) => exit.remove());
-    legend.attr('transform', (_, index) => `translate(16,${590 + index * 20})`);
+    legend.attr('transform', (_, index) => `translate(16,${570 + index * 20})`);
     legend.select('rect').attr('fill', (item) => colors[item.status].fill).attr('stroke', (item) => colors[item.status].stroke).attr('stroke-width', 1.5);
     legend.select('text').attr('fill', '#334155').text((item) => item.label);
 
