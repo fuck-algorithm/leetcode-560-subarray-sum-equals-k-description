@@ -6,13 +6,14 @@ interface Props {
   current: number;
   total: number;
   algorithmName: string;
+  labels: { index: string; result: string; ranges: string; current: string; compare: string; visited: string; done: string; idle: string };
 }
 
-export const StepExplanation: React.FC<Props> = ({ step, current, total, algorithmName }) => (
+export const StepExplanation: React.FC<Props> = ({ step, current, total, algorithmName, labels }) => (
   <section className="lesson-panel" aria-live="polite">
     <header className="lesson-heading">
       <div>
-        <small>{algorithmName} · 第 {current + 1} / {total} 步</small>
+        <small>{algorithmName} · {current + 1} / {total}</small>
         <h2>{step.title}</h2>
       </div>
       <span className="operation-badge" data-operation={step.operation}>{step.operation}</span>
@@ -24,7 +25,10 @@ export const StepExplanation: React.FC<Props> = ({ step, current, total, algorit
       ))}
     </dl>
     <div className="canvas-metrics">
-      {step.frame.metrics.map((metric) => <div key={metric.label}><small>{metric.label}</small><strong>{metric.value}</strong></div>)}
+      {step.frame.metrics.map((metric, index) => {
+        const metricLabel = metric.label === 'Index' || metric.label === '当前索引' ? labels.index : metric.label === 'Count' || metric.label === '累计答案' ? labels.result : labels.ranges;
+        return <div key={`${metric.label}-${index}`}><small>{metricLabel}</small><strong>{metric.value}</strong></div>;
+      })}
     </div>
   </section>
 );

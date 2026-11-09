@@ -43,6 +43,10 @@ lerna-debug.log*
 .storybook-out/
 storybook-static/
 
+# Browser acceptance artifacts
+/playwright-report/
+/test-results/
+
 # Temporary files
 .tmp/
 temp/

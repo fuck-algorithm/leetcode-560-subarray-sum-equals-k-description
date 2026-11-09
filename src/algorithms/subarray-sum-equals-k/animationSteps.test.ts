@@ -2,6 +2,14 @@ import { buildAlgorithmSteps } from './animationSteps';
 import { motionDuration } from '@/utils/motion';
 
 describe('buildAlgorithmSteps', () => {
+  it('provides an English snapshot and narration for every solution', () => {
+    (['brute-force', 'prefix-sum', 'hash-map'] as const).forEach((algorithm) => {
+      const steps = buildAlgorithmSteps(algorithm, [1, 2, -1], 2, 'en');
+      const untranslated = steps.filter((step) => /[一-鿿]/.test(step.narration));
+      expect(untranslated.map((step) => step.narration)).toEqual([]);
+      expect(steps.every((step) => step.frame.metrics.every((metric) => !/[一-鿿]/.test(metric.label)))).toBe(true);
+    });
+  });
   it.each([
     ['brute-force', 2],
     ['prefix-sum', 2],

@@ -1,4 +1,5 @@
 import type { AlgorithmType } from '@/types';
+import type { UiLocale } from '@/utils/productUi';
 
 export type StepOperation = 'init' | 'read' | 'compare' | 'match' | 'insert' | 'done';
 export type NodeStatus = 'idle' | 'current' | 'compare' | 'visited' | 'done';
@@ -30,26 +31,26 @@ export interface StepRange {
 export const algorithmCode: Record<AlgorithmType, { anchor: string; text: string }[]> = {
   'brute-force': [
     { anchor: 'brute-init', text: 'int count = 0;' },
-    { anchor: 'brute-extend', text: 'for (int left = 0; left < nums.length; left++) {' },
-    { anchor: 'brute-extend', text: '  int sum = 0;' },
-    { anchor: 'brute-extend', text: '  for (int right = left; right < nums.length; right++) {' },
-    { anchor: 'brute-extend', text: '    sum += nums[right];' },
+    { anchor: 'brute-outer', text: 'for (int left = 0; left < nums.length; left++) {' },
+    { anchor: 'brute-outer', text: '  int sum = 0;' },
+    { anchor: 'brute-inner', text: '  for (int right = left; right < nums.length; right++) {' },
+    { anchor: 'brute-add', text: '    sum += nums[right];' },
     { anchor: 'brute-match', text: '    if (sum == k) count++;' },
     { anchor: 'brute-done', text: 'return count;' },
   ],
   'prefix-sum': [
     { anchor: 'prefix-init', text: 'int[] prefix = buildPrefix(nums);' },
-    { anchor: 'prefix-compare', text: 'for (int left = 0; left < nums.length; left++) {' },
-    { anchor: 'prefix-compare', text: '  for (int right = left; right < nums.length; right++) {' },
-    { anchor: 'prefix-compare', text: '    int sum = prefix[right + 1] - prefix[left];' },
+    { anchor: 'prefix-outer', text: 'for (int left = 0; left < nums.length; left++) {' },
+    { anchor: 'prefix-outer', text: '  for (int right = left; right < nums.length; right++) {' },
+    { anchor: 'prefix-subtract', text: '    int sum = prefix[right + 1] - prefix[left];' },
     { anchor: 'prefix-match', text: '    if (sum == k) count++;' },
     { anchor: 'prefix-done', text: 'return count;' },
   ],
   'hash-map': [
-    { anchor: 'hash-init', text: 'Map<Integer, Integer> freq = new HashMap<>();' },
+    { anchor: 'hash-declare', text: 'Map<Integer, Integer> freq = new HashMap<>();' },
     { anchor: 'hash-init', text: 'freq.put(0, 1);' },
-    { anchor: 'hash-read', text: 'for (int value : nums) {' },
-    { anchor: 'hash-read', text: '  prefix += value;' },
+    { anchor: 'hash-loop', text: 'for (int value : nums) {' },
+    { anchor: 'hash-prefix', text: '  prefix += value;' },
     { anchor: 'hash-query', text: '  count += freq.getOrDefault(prefix - k, 0);' },
     { anchor: 'hash-insert', text: '  freq.merge(prefix, 1, Integer::sum);' },
     { anchor: 'hash-done', text: 'return count;' },
@@ -73,11 +74,39 @@ export interface AlgorithmStep {
   };
 }
 
-const operationLabels: Record<StepOperation, string> = {
-  init: '初始化', read: '读取', compare: '比较', match: '命中', insert: '记录', done: '完成',
-};
-
-export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k: number): AlgorithmStep[] {
+export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k: number, locale: UiLocale = 'zh-CN'): AlgorithmStep[] {
+  const phrase = locale === 'en' ? {
+    initBrute: 'Enumerate contiguous ranges and extend each right boundary to maintain the running sum.',
+    operation: ['Initialize', 'Read', 'Compare', 'Match', 'Record', 'Done'],
+    initPrefix: 'Build prefix sums so any contiguous range is computed by subtracting two boundaries.',
+    initHash: 'Seed prefix sum 0 with frequency 1 because a range may start at the first array element.',
+    read: (index: number, value: number, sum: number) => `Read nums[${index}]=${value} and add it to the prefix total to get ${sum}.`,
+    query: (target: number, kValue: number) => `Look up prefix sum ${target}; subtracting it from the current total would leave the target ${kValue}.`,
+    hit: (target: number, matches: number, kValue: number) => `Prefix sum ${target} occurred ${matches} time(s), so ${matches} new contiguous range(s) sum to ${kValue}.`,
+    insert: (sum: number) => `Record prefix sum ${sum} for later ranges because future totals may need this boundary.`,
+    done: (count: number, kValue: number) => `The scan is complete: ${count} contiguous range(s) sum to ${kValue}.`,
+    prefixCompare: (right: number, left: number, sum: number, kValue: number) => `Compare prefix[${right + 1}]−prefix[${left}]=${sum} with ${kValue}, because subtracting the boundaries gives this range sum.`,
+    bruteCompare: (left: number, right: number, sum: number) => `Check range [${left},${right}] with sum ${sum}, because brute force verifies every contiguous candidate.`,
+    matchRange: (left: number, right: number, kValue: number) => `Range [${left},${right}] sums to ${kValue}, so add it to the answer.`,
+    metrics: ['Index', 'Count', 'Ranges'],
+  } : {
+    initBrute: '从左到右枚举连续区间，每次扩展右端点并维护当前和。',
+    operation: ['初始化', '读取', '比较', '命中', '记录', '完成'],
+    initPrefix: '先构造前缀和数组，使任一区间和都能由两个前缀相减得到。',
+    initHash: '先将前缀和 0 记录一次，因为从数组开头就能构成目标和。',
+    read: (index: number, value: number, sum: number) => `读取 nums[${index}]=${value} 并累加，得到前缀和 ${sum}。`,
+    query: (target: number, kValue: number) => `查询前缀和 ${target} 是否已出现，因为当前和减去它等于目标 ${kValue}。`,
+    hit: (target: number, matches: number, kValue: number) => `前缀和 ${target} 出现 ${matches} 次，因此新增 ${matches} 个和为 ${kValue} 的连续区间。`,
+    insert: (sum: number) => `把前缀和 ${sum} 的出现次数加一，因为后续区间可能从这里开始。`,
+    done: (count: number, kValue: number) => `扫描结束，共找到 ${count} 个和为 ${kValue} 的子数组。`,
+    prefixCompare: (right: number, left: number, sum: number, kValue: number) => `比较 prefix[${right + 1}]−prefix[${left}]=${sum} 与目标 ${kValue}，因为前缀差就是该连续区间的和。`,
+    bruteCompare: (left: number, right: number, sum: number) => `检查区间 [${left},${right}] 的和 ${sum}，因为暴力法必须逐一验证每个连续区间。`,
+    matchRange: (left: number, right: number, kValue: number) => `区间 [${left},${right}] 的和正好是 ${kValue}，因此将它加入答案。`,
+    metrics: ['当前索引', '累计答案', '已记录区间'],
+  };
+  const operationLabels: Record<StepOperation, string> = {
+    init: phrase.operation[0], read: phrase.operation[1], compare: phrase.operation[2], match: phrase.operation[3], insert: phrase.operation[4], done: phrase.operation[5],
+  };
   const maxLength = 8;
   if (nums.length === 0 || nums.length > maxLength || nums.some((value) => !Number.isInteger(value) || Math.abs(value) > 100) || !Number.isInteger(k) || Math.abs(k) > 100) {
     throw new RangeError(`Animation input requires 1–${maxLength} integers within [-100, 100].`);
@@ -90,11 +119,11 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
   const visited = new Set<number>();
   const frequencies = new Map<number, number>();
   const hashPositions = new Map<number, number>();
-  const arrayPitch = nums.length <= 5 ? 112 : 82;
-  const workCenter = 520;
-  const arrayCenterX = workCenter - (nums.length <= 5 ? 170 : 210);
-  const hashX = nums.length <= 5 ? workCenter + 80 : 846;
-  const hashY = 145;
+  const hasHashLane = algorithm === 'hash-map';
+  const arrayPitch = hasHashLane ? (nums.length <= 5 ? 144 : 96) : 220;
+  const arrayCenterX = hasHashLane ? 360 : 600;
+  const hashX = hasHashLane ? (nums.length <= 5 ? 760 : 850) : 1000;
+  const hashY = 175;
 
   const addStep = (
     operation: StepOperation,
@@ -123,8 +152,8 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
         nodes.push({
           id: `hash-${key}`,
           label: `${key} × ${count}`,
-          x: hashX + (slot % 3) * 92,
-          y: hashY + Math.floor(slot / 3) * 68,
+          x: hashX + (slot % 2) * 92,
+          y: hashY + Math.floor(slot / 2) * 68,
           status: key === targetPrefix && operation === 'compare' && count > 0 ? 'compare' : operation === 'match' && key === targetPrefix ? 'done' : operation === 'insert' && key === variables.sum ? 'current' : count === 0 ? 'idle' : 'visited',
           badge: key === targetPrefix ? 'sum−k' : 'sum',
         });
@@ -142,14 +171,14 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       binding: { anchorIds: [anchor], variables },
       frame: {
         nodes,
-        arrows: current ? [{ id: `focus-${steps.length}`, from: { x: current.x, y: current.y + 48 }, to: algorithm === 'hash-map' && operation === 'compare' ? { x: targetNode?.x ?? hashX, y: targetNode?.y ?? hashY } : operation === 'insert' && pendingHashNode ? { x: pendingHashNode.x, y: pendingHashNode.y } : { x: current.x, y: current.y + 24 }, text: algorithm === 'hash-map' && operation === 'compare' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}`, from: { x: hashX - 48, y: hashY }, to: { x: hashX, y: hashY }, text: '初始化频次 1' }] : [],
+        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: { x: current.x, y: current.y + 48 }, to: algorithm === 'hash-map' && operation === 'compare' ? { x: targetNode?.x ?? hashX, y: targetNode?.y ?? hashY } : operation === 'insert' && pendingHashNode ? { x: pendingHashNode.x, y: pendingHashNode.y } : { x: current.x, y: current.y + 24 }, text: algorithm === 'hash-map' && operation === 'compare' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 48, y: hashY }, to: { x: hashX, y: hashY }, text: '初始化频次 1' }] : [],
         ranges: ranges.map((range) => ({ ...range })),
         candidate,
         result,
         metrics: [
-          { label: '当前索引', value: variables.index === undefined ? '—' : String(variables.index) },
-          { label: '累计答案', value: String(result) },
-          { label: '已记录区间', value: String(ranges.length) },
+          { label: phrase.metrics[0], value: variables.index === undefined ? '—' : String(variables.index) },
+          { label: phrase.metrics[1], value: String(result) },
+          { label: phrase.metrics[2], value: String(ranges.length) },
         ],
       },
     });
@@ -157,29 +186,29 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
 
   if (algorithm === 'hash-map') {
     frequencies.set(0, 1);
-    addStep('init', [], '先将前缀和 0 记录一次，因为从数组开头就能构成目标和。', 'hash-init', { sum: 0 });
+    addStep('init', [], phrase.initHash, 'hash-init', { sum: 0 });
     for (let index = 0, sum = 0; index < nums.length; index++) {
       sum += nums[index];
       visited.add(index);
-      addStep('read', [index], `读取 nums[${index}]=${nums[index]} 并累加，得到前缀和 ${sum}。`, 'hash-read', { index, value: nums[index], sum });
+      addStep('read', [index], phrase.read(index, nums[index], sum), 'hash-read', { index, value: nums[index], sum });
       const target = sum - k;
       const matches = frequencies.get(target) ?? 0;
-      addStep('compare', [index], `查询前缀和 ${target} 是否已出现，因为当前和减去它等于目标 ${k}。`, 'hash-query', { index, sum, target, matches }, target);
+      addStep('compare', [index], phrase.query(target, k), 'hash-query', { index, sum, target, matches }, target);
       if (matches > 0) {
         result += matches;
         const starts = Array.from({ length: index + 1 }, (_, start) => start)
           .filter((start) => prefix[index + 1] - prefix[start] === k);
         starts.forEach((start) => ranges.push({ start, end: index, sum: k }));
-        addStep('match', [index], `前缀和 ${target} 出现 ${matches} 次，因此新增 ${matches} 个和为 ${k} 的连续区间。`, 'hash-match', { index, sum, target, matches }, target);
+        addStep('match', [index], phrase.hit(target, matches, k), 'hash-match', { index, sum, target, matches }, target);
       }
       frequencies.set(sum, (frequencies.get(sum) ?? 0) + 1);
-      addStep('insert', [index], `把前缀和 ${sum} 的出现次数加一，因为后续区间可能从这里开始。`, 'hash-insert', { index, sum, count: frequencies.get(sum) ?? 0 });
+      addStep('insert', [index], phrase.insert(sum), 'hash-insert', { index, sum, count: frequencies.get(sum) ?? 0 });
     }
-    addStep('done', [], `扫描结束，共找到 ${result} 个和为 ${k} 的子数组。`, 'hash-done', { result });
+    addStep('done', [], phrase.done(result, k), 'hash-done', { result });
     return steps;
   }
 
-  addStep('init', [], algorithm === 'brute-force' ? '从左到右枚举连续区间，每次扩展右端点并维护当前和。' : '先构造前缀和数组，使任一区间和都能由两个前缀相减得到。', algorithm === 'brute-force' ? 'brute-init' : 'prefix-init', { target: k });
+  addStep('init', [], algorithm === 'brute-force' ? phrase.initBrute : phrase.initPrefix, algorithm === 'brute-force' ? 'brute-init' : 'prefix-init', { target: k });
   for (let start = 0; start < nums.length; start++) {
     let running = 0;
     for (let end = start; end < nums.length; end++) {
@@ -190,15 +219,15 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       const anchor = algorithm === 'prefix-sum' ? 'prefix-compare' : 'brute-extend';
       const candidate = { start, end, sum };
       addStep('compare', focus, algorithm === 'prefix-sum'
-        ? `比较 prefix[${end + 1}]−prefix[${start}]=${sum} 与目标 ${k}，因为前缀差就是该连续区间的和。`
-        : `检查区间 [${start},${end}] 的和 ${sum}，因为暴力法必须逐一验证每个连续区间。`, anchor, { start, end, sum }, undefined, candidate);
+        ? phrase.prefixCompare(end, start, sum, k)
+        : phrase.bruteCompare(start, end, sum), anchor, { start, end, sum }, undefined, candidate);
       if (sum === k) {
         result++;
         ranges.push({ start, end, sum });
-        addStep('match', focus, `区间 [${start},${end}] 的和正好是 ${k}，因此将它加入答案。`, algorithm === 'prefix-sum' ? 'prefix-match' : 'brute-match', { start, end, sum }, undefined, candidate);
+        addStep('match', focus, phrase.matchRange(start, end, k), algorithm === 'prefix-sum' ? 'prefix-match' : 'brute-match', { start, end, sum }, undefined, candidate);
       }
     }
   }
-  addStep('done', [], `枚举结束，共找到 ${result} 个和为 ${k} 的子数组。`, algorithm === 'prefix-sum' ? 'prefix-done' : 'brute-done', { result });
+  addStep('done', [], phrase.done(result, k), algorithm === 'prefix-sum' ? 'prefix-done' : 'brute-done', { result });
   return steps;
 }
