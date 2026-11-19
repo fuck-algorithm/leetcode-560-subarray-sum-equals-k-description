@@ -38,7 +38,8 @@ describe('product navigation, locale and code panels', () => {
   it('switches locale and keeps the active demonstration step', () => {
     renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Next →' }));
-    fireEvent.change(screen.getByLabelText('Language', { exact: true }), { target: { value: 'zh-CN' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Language' }));
+    fireEvent.click(screen.getByRole('option', { name: '简中' }));
     expect(screen.getByRole('heading', { name: 'LeetCode 560：和为 K 的子数组' })).toBeInTheDocument();
     expect(screen.getByTestId('step-counter')).toHaveTextContent('2 / 21');
     expect(localStorage.getItem('leetcode-560-ui-preferences')).toContain('zh-CN');
@@ -46,8 +47,9 @@ describe('product navigation, locale and code panels', () => {
 
   it.each(['java', 'python', 'go', 'javascript'])('shows %s code and persists language selection', (language) => {
     renderApp();
-    fireEvent.change(screen.getByLabelText('Code language'), { target: { value: language } });
-    expect(screen.getByLabelText('Code language')).toHaveValue(language);
+    fireEvent.click(screen.getByRole('button', { name: 'Code language' }));
+    fireEvent.click(screen.getByRole('option', { name: { java: 'Java', python: 'Python', go: 'Go', javascript: 'JavaScript' }[language] }));
+    expect(screen.getByRole('button', { name: 'Code language' })).toHaveTextContent({ java: 'Java', python: 'Python', go: 'Go', javascript: 'JavaScript' }[language]!);
     expect(localStorage.getItem('leetcode-560-code-language')).toBe(language);
     expect(document.querySelectorAll('.code-line').length).toBeGreaterThan(0);
   });

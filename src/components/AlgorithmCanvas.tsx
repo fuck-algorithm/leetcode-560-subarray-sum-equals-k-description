@@ -12,12 +12,13 @@ interface Props {
 const algorithmLabel = (step: AlgorithmStep): { id: string; text: string; x: number; y: number }[] => {
   const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
   const first = arrayNodes[0];
+  const last = arrayNodes[arrayNodes.length - 1];
   const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
-  const arrayX = first?.x ?? 80;
-  const hashX = hashNodes[0]?.x ?? 1000;
+  const arrayX = ((first?.x ?? 600) + (last?.x ?? 600)) / 2;
+  const hashX = hashNodes.length ? (Math.min(...hashNodes.map((node) => node.x)) + Math.max(...hashNodes.map((node) => node.x))) / 2 : 830;
   return hashNodes.length > 0
-    ? [{ id: 'array-label', text: '输入数组：逐项累加', x: arrayX, y: 126 }, { id: 'hash-label', text: '前缀和频次表：历史记录', x: hashX, y: 122 }]
-    : [{ id: 'array-label', text: '输入数组：枚举连续区间', x: arrayX, y: 126 }];
+    ? [{ id: 'array-label', text: '输入数组：逐项累加', x: arrayX, y: 215 }, { id: 'hash-label', text: '前缀和频次表：历史记录', x: hashX, y: 215 }]
+    : [{ id: 'array-label', text: '输入数组：枚举连续区间', x: arrayX, y: 215 }];
 };
 
 const colors = {
@@ -45,7 +46,7 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
     const root = svg.select<SVGGElement>('.zoom-layer');
     const zoom = d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.65, 2.5]).on('zoom', (event) => root.attr('transform', event.transform.toString()));
     svg.call(zoom).on('dblclick.zoom', null);
-    svg.call(zoom.transform, d3.zoomIdentity.translate(24, 4).scale(1));
+    svg.call(zoom.transform, d3.zoomIdentity.translate(-60, 0).scale(1.2));
   }, []);
 
   useEffect(() => {
@@ -89,12 +90,18 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
       .data(step.frame.arrows, (arrow) => arrow.id)
       .join((enter) => enter.append('path').attr('class', 'flow-arrow').attr('fill', 'none').attr('pathLength', 1).attr('stroke-dasharray', '1 1').attr('stroke-dashoffset', reducedMotion ? 0 : 1), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
     arrowPaths.attr('data-arrow-id', (arrow) => arrow.id).attr('d', (arrow) => `M${arrow.from.x},${arrow.from.y} L${arrow.to.x},${arrow.to.y}`)
-      .attr('stroke', '#0d8068').attr('stroke-width', 2).transition('draw').duration(motionDuration('arrow', speed, reducedMotion)).ease(d3.easeCubicOut).attr('stroke-dashoffset', 0).attr('opacity', 1);
+      .attr('stroke', '#258464').attr('stroke-width', 2.5).attr('marker-end', 'url(#arrow-tip)').transition('draw').duration(motionDuration('arrow', speed, reducedMotion)).ease(d3.easeCubicOut).attr('stroke-dashoffset', 0).attr('opacity', 1);
     const arrowLabels = root.select<SVGGElement>('.layer-arrows').selectAll<SVGTextElement, AlgorithmStep['frame']['arrows'][number]>('text.focus-arrow')
       .data(step.frame.arrows, (arrow) => arrow.id)
       .join((enter) => enter.append('text').attr('class', 'focus-arrow').attr('text-anchor', 'middle').attr('opacity', 1), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
-    arrowLabels.attr('x', (arrow) => (arrow.from.x + arrow.to.x) / 2).attr('y', (arrow) => (arrow.from.y + arrow.to.y) / 2 - 6).attr('fill', '#0d8068').text((arrow) => arrow.text)
+    arrowLabels.attr('x', (arrow) => (arrow.from.x + arrow.to.x) / 2).attr('y', (arrow) => (arrow.from.y + arrow.to.y) / 2 - 10).attr('fill', '#17674e').text((arrow) => arrow.text)
       .attr('opacity', 1);
+    const arrowBackplates = root.select<SVGGElement>('.layer-arrows').selectAll<SVGRectElement, AlgorithmStep['frame']['arrows'][number]>('rect.arrow-label-backplate')
+      .data(step.frame.arrows, (arrow) => arrow.id)
+      .join((enter) => enter.append('rect').attr('class', 'arrow-label-backplate').attr('height', 20).attr('rx', 6).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
+    arrowBackplates.attr('x', (arrow) => (arrow.from.x + arrow.to.x) / 2 - Math.max(34, arrow.text.length * 3.4 + 10)).attr('y', (arrow) => (arrow.from.y + arrow.to.y) / 2 - 26)
+      .attr('width', (arrow) => Math.max(68, arrow.text.length * 6.8 + 20)).attr('fill', '#f9fcfa').attr('stroke', '#b9cec2').attr('stroke-width', 1).attr('opacity', 0.96).lower();
+    arrowLabels.raise();
 
     const displayedRanges = step.frame.candidate && !step.frame.ranges.some((range) => range.start === step.frame.candidate?.start && range.end === step.frame.candidate?.end) ? [...step.frame.ranges, step.frame.candidate] : step.frame.ranges;
     const ranges = root.select<SVGGElement>('.layer-ranges').selectAll<SVGRectElement, AlgorithmStep['frame']['ranges'][number]>('rect.answer-range')
@@ -102,17 +109,26 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
       .join((enter) => enter.append('rect').attr('class', 'answer-range').attr('height', 6).attr('rx', 2).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
     const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
     const arrayX = (index: number) => arrayNodes.find((node) => node.id === `array-${index}`)?.x ?? 100;
-    const rangeLaneStart = 420;
+    const rangeLaneStart = 500;
+    const rangeLanes: AlgorithmStep['frame']['ranges'][] = [];
+    const rangeLaneById = new Map<string, number>();
+    displayedRanges.forEach((range) => {
+      const lane = rangeLanes.findIndex((items) => items.every((item) => item.end < range.start || range.end < item.start));
+      const laneIndex = lane === -1 ? rangeLanes.length : lane;
+      rangeLanes[laneIndex] ??= [];
+      rangeLanes[laneIndex].push(range);
+      rangeLaneById.set(`${range.start}-${range.end}`, laneIndex);
+    });
     ranges.attr('data-range-id', (range) => `answer-${range.start}-${range.end}`)
       .attr('x', (range) => arrayX(range.start) - 36)
-      .attr('y', (_, index) => rangeLaneStart + index * 11)
-      .attr('width', (range) => Math.max(8, (range.end - range.start + 1) * 112 - 20))
+      .attr('y', (range) => rangeLaneStart + (rangeLaneById.get(`${range.start}-${range.end}`) ?? 0) * 14)
+      .attr('width', (range) => Math.max(8, arrayX(range.end) - arrayX(range.start) + 52))
       .attr('fill', '#18765a').transition('move').duration(ms).attr('opacity', 0.8);
 
     const layoutLabels = root.select<SVGGElement>('.layer-labels').selectAll<SVGTextElement, { id: string; text: string; x: number; y: number }>('text.layout-label')
       .data(algorithmLabel(step), (label) => label.id)
       .join((enter) => enter.append('text').attr('class', 'layout-label'), (update) => update, (exit) => exit.remove());
-    layoutLabels.attr('x', (label) => label.x).attr('y', (label) => label.y).attr('fill', '#475569').attr('font-size', 12).text((label) => label.text);
+    layoutLabels.attr('x', (label) => label.x).attr('y', (label) => label.y).attr('fill', '#475569').attr('font-size', 12).attr('text-anchor', 'middle').text((label) => label.text);
 
     const legend = root.select<SVGGElement>('.layer-legend').selectAll<SVGGElement, typeof legendItems[number]>('g.legend-item')
       .data(legendItems, (item) => item.status)
@@ -122,17 +138,18 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
         item.append('text').attr('x', 17).attr('y', 10).attr('font-size', 11);
         return item;
       }, (update) => update, (exit) => exit.remove());
-    legend.attr('transform', (_, index) => `translate(16,${570 + index * 20})`);
+    legend.attr('transform', (_, index) => `translate(16,${455 + index * 18})`);
     legend.select('rect').attr('fill', (item) => colors[item.status].fill).attr('stroke', (item) => colors[item.status].stroke).attr('stroke-width', 1.5);
     legend.select('text').attr('fill', '#334155').text((item) => item.label);
 
   }, [step, reducedMotion, speed]);
 
   return <svg ref={svgRef} className="algorithm-svg" viewBox="0 0 1200 720" role="img" aria-label="算法执行画布" style={{ touchAction: 'none' }}>
+    <defs><marker id="arrow-tip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#258464" /></marker></defs>
     <g className="zoom-layer">
       <g className="layer-ranges" />
-      <g className="layer-arrows" />
       <g className="layer-nodes" />
+      <g className="layer-arrows" />
       <g className="layer-labels" />
       <g className="layer-legend" />
     </g>

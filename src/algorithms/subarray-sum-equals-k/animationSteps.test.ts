@@ -43,18 +43,36 @@ describe('buildAlgorithmSteps', () => {
     expect(steps.filter((step) => step.operation === 'compare').every((step) => step.frame.arrows.some((arrow) => arrow.text.startsWith('查找')))).toBe(true);
   });
 
-  it('centers the input structure and separates the hash auxiliary lane', () => {
-    const steps = buildAlgorithmSteps('hash-map', [1, -1, 2], 2);
+  it('centers the input structure and keeps array and hash nodes from overlapping', () => {
+    const steps = buildAlgorithmSteps('hash-map', [1, -1, 2, 0, 3, -2, 4, 1], 2);
     steps.forEach((step) => {
       const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
       const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
-      if (arrayNodes.length && hashNodes.length) {
-        expect(Math.min(...hashNodes.map((node) => node.y))).toBeGreaterThanOrEqual(145);
-        expect(Math.min(...hashNodes.map((node) => node.x))).toBeGreaterThan(Math.max(...arrayNodes.map((node) => node.x)) + 80);
-        const arrayCenter = (Math.min(...arrayNodes.map((node) => node.x)) + Math.max(...arrayNodes.map((node) => node.x))) / 2;
-        expect(arrayCenter).toBeGreaterThan(250);
-        expect(arrayCenter).toBeLessThan(600);
-      }
+      const arrayCenter = (Math.min(...arrayNodes.map((node) => node.x)) + Math.max(...arrayNodes.map((node) => node.x))) / 2;
+      expect(arrayCenter).toBe(350);
+      expect(arrayNodes.every((node) => node.y === 270)).toBe(true);
+      expect(hashNodes.every((node) => node.y >= 270)).toBe(true);
+      expect(Math.min(...hashNodes.map((node) => node.x))).toBeGreaterThan(Math.max(...arrayNodes.map((node) => node.x)) + 80);
+      const allNodes = [...arrayNodes, ...hashNodes];
+      allNodes.forEach((node, index) => allNodes.slice(index + 1).forEach((other) => {
+        const nodeWidth = node.id.startsWith('hash-') ? 84 : 72;
+        const otherWidth = other.id.startsWith('hash-') ? 84 : 72;
+        const separatedHorizontally = Math.abs(node.x - other.x) >= (nodeWidth + otherWidth) / 2 + 8;
+        const separatedVertically = Math.abs(node.y - other.y) >= 56;
+        expect(separatedHorizontally || separatedVertically).toBe(true);
+      }));
+      expect(step.frame.arrows.every((arrow) => arrow.text.trim().length > 0)).toBe(true);
+    });
+  });
+
+  it('keeps the widest supported arrays within the logical canvas bounds', () => {
+    (['brute-force', 'prefix-sum', 'hash-map'] as const).forEach((algorithm) => {
+      const steps = buildAlgorithmSteps(algorithm, Array(8).fill(1), 2);
+      steps.forEach((step) => step.frame.nodes.forEach((node) => {
+        const width = node.id.startsWith('hash-') ? 84 : 72;
+        expect(node.x - width / 2).toBeGreaterThanOrEqual(0);
+        expect(node.x + width / 2).toBeLessThanOrEqual(1200);
+      }));
     });
   });
 

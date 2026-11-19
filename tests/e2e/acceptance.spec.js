@@ -54,9 +54,10 @@ test('E2E-004: sample and random input update the visible data and animation', a
 
 test('E2E-005: code language preference persists across reload', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel(/代码语言|Code language/).selectOption('python');
+  await page.getByRole('button', { name: /代码语言|Code language/ }).click();
+  await page.getByRole('option', { name: 'Python' }).click();
   await page.reload();
-  await expect(page.getByLabel(/代码语言|Code language/)).toHaveValue('python');
+  await expect(page.getByRole('button', { name: /代码语言|Code language/ })).toHaveAttribute('data-value', 'python');
 });
 
 test('E2E-006: step snapshots synchronize narration, code anchors and one current focus', async ({ page }) => {
@@ -85,11 +86,12 @@ test('E2E-007: keyboard controls move, play, pause and reset the timeline', asyn
   await expect(page.locator('.step-counter')).toContainText(/1 \/ \d+/);
 });
 
-test('E2E-008: range input seeks to the last deterministic snapshot', async ({ page }) => {
+test('E2E-008: custom timeline seeks to the last deterministic snapshot', async ({ page }) => {
   await page.goto('/');
   const slider = page.getByRole('slider', { name: /Step|步骤/ });
-  const maximum = Number(await slider.getAttribute('max'));
-  await slider.fill(String(maximum));
+  const maximum = Number(await slider.getAttribute('aria-valuemax'));
+  await slider.focus();
+  await slider.press('End');
   await expect(page.locator('.step-counter')).toContainText(`${maximum + 1} / ${maximum + 1}`);
   await expect(page.locator('.operation-badge')).toContainText(/done/i);
 });
@@ -144,11 +146,12 @@ test('E2E-012: community QR appears on hover and preserves its aspect ratio', as
 
 test('E2E-013: playback speed persists after reload', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel(/速度|Speed/).selectOption('2');
+  await page.getByRole('button', { name: /速度|Speed/ }).click();
+  await page.getByRole('option', { name: '2×' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('leetcode-560-ui-preferences') || '{}').speed)).toBe(2);
   await page.reload();
   await expect(page.locator('.star-count')).toBeVisible();
-  await expect(page.getByLabel(/速度|Speed/)).toHaveValue('2');
+  await expect(page.getByRole('button', { name: /速度|Speed/ })).toHaveAttribute('data-value', '2');
 });
 
 test('E2E-014: stars cache success and back off after API failure', async ({ page }) => {
@@ -172,7 +175,8 @@ test('E2E-016: first visit is English and complete UI can switch to Chinese', as
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'LeetCode 560: Subarray Sum Equals K' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Random' })).toBeVisible();
-  await page.getByLabel('Language', { exact: true }).selectOption('zh-CN');
+  await page.getByRole('button', { name: 'Language', exact: true }).click();
+  await page.getByRole('option', { name: '简中' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('leetcode-560-ui-preferences') || '{}').locale)).toBe('zh-CN');
   await expect(page.getByRole('heading', { name: 'LeetCode 560：和为 K 的子数组' })).toBeVisible();
   await expect(page.getByRole('button', { name: '随机' })).toBeVisible();
@@ -181,13 +185,14 @@ test('E2E-016: first visit is English and complete UI can switch to Chinese', as
 
 test('E2E-017: locale change preserves current step and code selection', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: /Next →|下一步 →/ }).click();
-  await page.getByLabel('Language', { exact: true }).selectOption('zh-CN');
+  await page.getByRole('button', { name: 'Language', exact: true }).click();
+  await page.getByRole('option', { name: '简中' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('leetcode-560-ui-preferences') || '{}').locale)).toBe('zh-CN');
   await expect(page.locator('.step-counter')).toHaveText(/2 \/ \d+/);
-  await page.getByLabel(/代码语言|Code language/).selectOption('go');
+  await page.getByRole('button', { name: /代码语言|Code language/ }).click(); await page.getByRole('option', { name: 'Go' }).click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('leetcode-560-code-language'))).toBe('go');
   await page.reload();
-  await expect(page.getByLabel(/Language|界面语言/)).toHaveValue('zh-CN');
-  await expect(page.getByLabel(/代码语言|Code language/)).toHaveValue('go');
+  await expect(page.getByRole('button', { name: /Language|界面语言/ })).toHaveAttribute('data-value', 'zh-CN');
+  await expect(page.getByRole('button', { name: /代码语言|Code language/ })).toHaveAttribute('data-value', 'go');
   await expect(page.locator('.step-counter')).toContainText(/1 \/ \d+/);
 });

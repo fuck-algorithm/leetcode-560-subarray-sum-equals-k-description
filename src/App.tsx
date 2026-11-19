@@ -9,6 +9,9 @@ import type { AlgorithmType } from '@/types';
 import { codeLines, CODE_LANGUAGE_LABEL, type CodeLanguage, type UiLocale, UI_TEXT } from '@/utils/productUi';
 import { fetchStarCount } from '@/utils/starCount';
 import { COMPLEXITY_INFO } from '@/utils/constants';
+import { CustomSelect } from '@/components/CustomSelect';
+import type { SelectOption } from '@/components/CustomSelect';
+import { StepSlider } from '@/components/StepSlider';
 
 const ALGORITHMS: AlgorithmType[] = ['brute-force', 'prefix-sum', 'hash-map'];
 const CODE_LANGUAGES: CodeLanguage[] = ['java', 'python', 'go', 'javascript'];
@@ -111,6 +114,9 @@ const App: React.FC = () => {
   const currentCodeLine = visibleCode.findIndex((line) => step.binding.anchorIds.includes(line.anchor));
   const currentStepUsesMatch = step.operation === 'match';
   const watchLabels = locale === 'en' ? { index: 'Index', result: 'Count', ranges: 'Matched ranges', current: 'Current', compare: 'Lookup / compare', visited: 'Visited', done: 'Answer', idle: 'Idle / absent' } : { index: '索引', result: '计数', ranges: '命中区间', current: '当前', compare: '查询 / 比较', visited: '已访问', done: '答案', idle: '未处理 / 不存在' };
+  const localeOptions: SelectOption<UiLocale>[] = [{ value: 'en', label: 'EN' }, { value: 'zh-CN', label: '简中' }];
+  const codeOptions: SelectOption<CodeLanguage>[] = CODE_LANGUAGES.map((language) => ({ value: language, label: CODE_LANGUAGE_LABEL[language] }));
+  const speedOptions: SelectOption<number>[] = [{ value: 0.5, label: '0.5×' }, { value: 1, label: '1×' }, { value: 2, label: '2×' }];
   const currentArrayCount = step.frame.nodes.filter((node) => node.id.startsWith('array-')).filter((node) => node.status === 'current').length;
   const submitInput = (value: string) => {
     const match = value.match(/^([\d\s,+-]+);\s*k\s*=\s*(-?\d+)$/i);
@@ -130,7 +136,7 @@ const App: React.FC = () => {
       <div className="header-right">
         <button className="header-button" onClick={() => setIdeaOpen(true)}>{text.ideas}</button>
         <a className="github-link" href="https://github.com/fuck-algorithm/leetcode-560-subarray-sum-equals-k-description" target="_blank" rel="noreferrer" aria-label={text.github}>{text.github} <span className="star-count">★ {starCount ?? 0} {text.stars}</span></a>
-        <label className="locale-switch"><span className="sr-only">{text.language}</span><select aria-label={text.language} value={locale} onChange={(event) => setLocale(event.target.value as UiLocale)}><option value="en">EN</option><option value="zh-CN">简中</option></select></label>
+        <CustomSelect className="locale-switch" label={text.language} value={locale} options={localeOptions} onChange={setLocale} />
       </div>
     </header>
     <div className="input-bar"><span>{text.array}</span><code>[{inputData.nums.join(', ')}]</code><span>{text.target} = {inputData.k}</span><div className="algorithm-tabs">{ALGORITHMS.map((type) => <button key={type} className={currentAlgorithm === type ? 'selected' : ''} onClick={() => setAlgorithmType(type)}>{name[type]}</button>)}</div></div>
@@ -143,12 +149,12 @@ const App: React.FC = () => {
         <StepExplanation step={step} current={activeIndex} total={steps.length} algorithmName={name[currentAlgorithm]} labels={watchLabels} />
       </article>
       <aside className="code-panel">
-        <div className="code-title"><span>{text.code}</span><label><span className="sr-only">{text.codeLanguage}</span><select aria-label={text.codeLanguage} value={codeLanguage} onChange={(event) => setCodeLanguage(event.target.value as CodeLanguage)}>{CODE_LANGUAGES.map((language) => <option key={language} value={language}>{CODE_LANGUAGE_LABEL[language]}</option>)}</select></label></div>
+        <div className="code-title"><span>{text.code}</span><CustomSelect label={text.codeLanguage} value={codeLanguage} options={codeOptions} onChange={setCodeLanguage} /></div>
         <div className="watch-panel"><button className="watch-toggle" aria-expanded={watchOpen} onClick={() => setWatchOpen(!watchOpen)}>{text.watch}</button>{watchOpen && <dl>{Object.entries(watchValues).slice(0, 4).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl>}</div>
         <pre>{visibleCode.map((line, index) => <div key={`${line.anchor}-${index}`} className={index === currentCodeLine ? 'code-line active' : 'code-line'}><span>{String(index + 1).padStart(2, '0')}</span><code>{line.text}</code></div>)}</pre>
       </aside>
     </section>
-    <footer className="control-bar"><div className="button-group"><button onClick={() => dispatch(setCurrentStep(activeIndex - 1))} disabled={activeIndex === 0}>← {text.back}</button><button onClick={togglePlay}>{isPlaying ? text.pause : text.play}</button><button onClick={() => dispatch(setCurrentStep(activeIndex + 1))} disabled={activeIndex >= steps.length - 1}>{text.next} →</button><button onClick={() => dispatch(resetAnimation(inputData))}>{text.reset}</button></div><input aria-label={text.step} type="range" min={0} max={steps.length - 1} value={activeIndex} onChange={(event) => { dispatch(setCurrentStep(Number(event.target.value))); if (isPlaying) dispatch(pauseAnimation()); }} /><span className="step-counter">{activeIndex + 1} / {steps.length}</span><label>{text.speed} <select aria-label={text.speed} value={playbackSpeed} onChange={(event) => dispatch(setPlaybackSpeed(Number(event.target.value)))}><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={2}>2×</option></select></label></footer>
+    <footer className="control-bar"><div className="button-group"><button onClick={() => dispatch(setCurrentStep(activeIndex - 1))} disabled={activeIndex === 0}>← {text.back}</button><button onClick={togglePlay}>{isPlaying ? text.pause : text.play}</button><button onClick={() => dispatch(setCurrentStep(activeIndex + 1))} disabled={activeIndex >= steps.length - 1}>{text.next} →</button><button onClick={() => dispatch(resetAnimation(inputData))}>{text.reset}</button></div><StepSlider label={text.step} value={activeIndex} max={steps.length - 1} onChange={(value) => { dispatch(setCurrentStep(value)); if (isPlaying) dispatch(pauseAnimation()); }} /><span className="step-counter">{activeIndex + 1} / {steps.length}</span><span className="speed-control"><span>{text.speed}</span><CustomSelect label={text.speed} value={playbackSpeed} options={speedOptions} onChange={(value) => dispatch(setPlaybackSpeed(value))} /></span></footer>
     {ideaOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIdeaOpen(false); }}><section className="idea-modal" role="dialog" aria-modal="true" aria-labelledby="idea-title"><button className="modal-close" onClick={() => setIdeaOpen(false)}>{text.close}</button><h2 id="idea-title">{text.ideaTitle}</h2><p>{text.ideaBody}</p><pre>{IDEA_CODE}</pre></section></div>}
     <aside className="community-float"><button aria-label={text.community}><img src="/assets/qrcode-community.png" alt="" /></button><div className="community-card"><strong>{text.community} · leetcode</strong><img src="/assets/qrcode-community.png" alt={text.qrAlt} /></div></aside>
   </main>;

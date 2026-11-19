@@ -120,10 +120,10 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
   const frequencies = new Map<number, number>();
   const hashPositions = new Map<number, number>();
   const hasHashLane = algorithm === 'hash-map';
-  const arrayPitch = hasHashLane ? (nums.length <= 5 ? 144 : 96) : 220;
-  const arrayCenterX = hasHashLane ? 360 : 600;
-  const hashX = hasHashLane ? (nums.length <= 5 ? 760 : 850) : 1000;
-  const hashY = 175;
+  const arrayPitch = Math.min(hasHashLane ? 124 : 150, (hasHashLane ? 580 : 980) / Math.max(nums.length - 1, 1));
+  const arrayCenterX = hasHashLane ? 350 : 600;
+  const hashX = 790;
+  const hashY = 270;
 
   const addStep = (
     operation: StepOperation,
@@ -138,7 +138,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       id: `array-${index}`,
       label: String(value),
       x: arrayCenterX + (index - (nums.length - 1) / 2) * arrayPitch,
-      y: 175,
+      y: 270,
       status: focus.includes(index) ? resolveArrayStatus(algorithm, operation, index, focus) : visited.has(index) ? 'visited' : 'idle',
       badge: String(index),
     }));
@@ -152,7 +152,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
         nodes.push({
           id: `hash-${key}`,
           label: `${key} × ${count}`,
-          x: hashX + (slot % 2) * 92,
+          x: hashX + (slot % 2) * 108,
           y: hashY + Math.floor(slot / 2) * 68,
           status: key === targetPrefix && operation === 'compare' && count > 0 ? 'compare' : operation === 'match' && key === targetPrefix ? 'done' : operation === 'insert' && key === variables.sum ? 'current' : count === 0 ? 'idle' : 'visited',
           badge: key === targetPrefix ? 'sum−k' : 'sum',
@@ -171,7 +171,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       binding: { anchorIds: [anchor], variables },
       frame: {
         nodes,
-        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: { x: current.x, y: current.y + 48 }, to: algorithm === 'hash-map' && operation === 'compare' ? { x: targetNode?.x ?? hashX, y: targetNode?.y ?? hashY } : operation === 'insert' && pendingHashNode ? { x: pendingHashNode.x, y: pendingHashNode.y } : { x: current.x, y: current.y + 24 }, text: algorithm === 'hash-map' && operation === 'compare' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 48, y: hashY }, to: { x: hashX, y: hashY }, text: '初始化频次 1' }] : [],
+        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: { x: current.x, y: current.y + 48 }, to: algorithm === 'hash-map' && operation === 'compare' ? { x: (targetNode?.x ?? hashX) - 48, y: targetNode?.y ?? hashY } : operation === 'insert' && pendingHashNode ? { x: pendingHashNode.x - 48, y: pendingHashNode.y } : { x: current.x, y: current.y + 52 }, text: algorithm === 'hash-map' && operation === 'compare' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 122, y: hashY - 40 }, to: { x: hashX - 48, y: hashY }, text: '初始化频次 1' }] : [],
         ranges: ranges.map((range) => ({ ...range })),
         candidate,
         result,
