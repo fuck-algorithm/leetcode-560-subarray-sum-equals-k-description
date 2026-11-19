@@ -1,7 +1,7 @@
 import type { AlgorithmType } from '@/types';
 import type { UiLocale } from '@/utils/productUi';
 
-export type StepOperation = 'init' | 'read' | 'compare' | 'match' | 'insert' | 'done';
+export type StepOperation = 'init' | 'inspect' | 'read' | 'compare' | 'lookup' | 'match' | 'insert' | 'done';
 export type NodeStatus = 'idle' | 'current' | 'compare' | 'visited' | 'done';
 
 function resolveArrayStatus(algorithm: AlgorithmType, operation: StepOperation, index: number, focus: number[]): NodeStatus {
@@ -77,10 +77,16 @@ export interface AlgorithmStep {
 export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k: number, locale: UiLocale = 'zh-CN'): AlgorithmStep[] {
   const phrase = locale === 'en' ? {
     initBrute: 'Enumerate contiguous ranges and extend each right boundary to maintain the running sum.',
-    operation: ['Initialize', 'Read', 'Compare', 'Match', 'Record', 'Done'],
+    notFound: (target: number, kValue: number) => `No earlier prefix ${target} exists, so the current prefix cannot form a range summing to ${kValue} yet.`,
+    recordHits: (matches: number, target: number, count: number) => `Record ${matches} matches for prior prefix ${target}; the total answer count is now ${count}.`,
+    operation: ['Initialize', 'Inspect', 'Read', 'Compare', 'Lookup', 'Match', 'Record', 'Done'],
     initPrefix: 'Build prefix sums so any contiguous range is computed by subtracting two boundaries.',
     initHash: 'Seed prefix sum 0 with frequency 1 because a range may start at the first array element.',
     read: (index: number, value: number, sum: number) => `Read nums[${index}]=${value} and add it to the prefix total to get ${sum}.`,
+    inspect: (index: number, value: number) => `Inspect nums[${index}]=${value} before changing the running total, so the input value and accumulated state stay distinct.`,
+    prefixStart: 'Start with prefix[0]=0; each next prefix value will add exactly one array element.',
+    prefixBuild: (index: number, _value: number, total: number) => `Build prefix[${index + 1}] = prefix[${index}] + nums[${index}] = ${total}, recording the boundary after this value.`,
+    extend: (left: number, right: number, value: number, sum: number) => `Extend [${left},${right}] with nums[${right}]=${value}; the running sum is now ${sum}, ready for comparison with k.`,
     query: (target: number, kValue: number) => `Look up prefix sum ${target}; subtracting it from the current total would leave the target ${kValue}.`,
     hit: (target: number, matches: number, kValue: number) => `Prefix sum ${target} occurred ${matches} time(s), so ${matches} new contiguous range(s) sum to ${kValue}.`,
     insert: (sum: number) => `Record prefix sum ${sum} for later ranges because future totals may need this boundary.`,
@@ -91,10 +97,16 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
     metrics: ['Index', 'Count', 'Ranges'],
   } : {
     initBrute: '从左到右枚举连续区间，每次扩展右端点并维护当前和。',
-    operation: ['初始化', '读取', '比较', '命中', '记录', '完成'],
+    notFound: (target: number, kValue: number) => `没有历史前缀和 ${target}，当前前缀暂时无法配出目标 ${kValue}。`,
+    recordHits: (matches: number, target: number, count: number) => `记录由历史前缀和 ${target} 命中的 ${matches} 个区间，答案总数更新为 ${count}。`,
+    operation: ['初始化', '检查', '读取', '比较', '查询', '命中', '记录', '完成'],
     initPrefix: '先构造前缀和数组，使任一区间和都能由两个前缀相减得到。',
+    inspect: (index: number, value: number) => `先读取 nums[${index}]=${value}，再决定如何扩展区间，避免把输入值和当前累计和混淆。`,
+    prefixStart: '建立边界 prefix[0]=0；之后每读入一个元素，就生成下一个前缀和。',
+    prefixBuild: (index: number, _value: number, total: number) => `计算 prefix[${index + 1}] = prefix[${index}] + nums[${index}] = ${total}，记录该元素之后的边界。`,
     initHash: '先将前缀和 0 记录一次，因为从数组开头就能构成目标和。',
     read: (index: number, value: number, sum: number) => `读取 nums[${index}]=${value} 并累加，得到前缀和 ${sum}。`,
+    extend: (left: number, right: number, value: number, sum: number) => `将 nums[${right}]=${value} 加入区间 [${left},${right}]，当前和变为 ${sum}，接下来判断是否等于 k。`,
     query: (target: number, kValue: number) => `查询前缀和 ${target} 是否已出现，因为当前和减去它等于目标 ${kValue}。`,
     hit: (target: number, matches: number, kValue: number) => `前缀和 ${target} 出现 ${matches} 次，因此新增 ${matches} 个和为 ${kValue} 的连续区间。`,
     insert: (sum: number) => `把前缀和 ${sum} 的出现次数加一，因为后续区间可能从这里开始。`,
@@ -105,7 +117,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
     metrics: ['当前索引', '累计答案', '已记录区间'],
   };
   const operationLabels: Record<StepOperation, string> = {
-    init: phrase.operation[0], read: phrase.operation[1], compare: phrase.operation[2], match: phrase.operation[3], insert: phrase.operation[4], done: phrase.operation[5],
+    init: phrase.operation[0], inspect: phrase.operation[1], read: phrase.operation[2], compare: phrase.operation[3], lookup: phrase.operation[4], match: phrase.operation[5], insert: phrase.operation[6], done: phrase.operation[7],
   };
   const maxLength = 8;
   if (nums.length === 0 || nums.length > maxLength || nums.some((value) => !Number.isInteger(value) || Math.abs(value) > 100) || !Number.isInteger(k) || Math.abs(k) > 100) {
@@ -119,10 +131,11 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
   const visited = new Set<number>();
   const frequencies = new Map<number, number>();
   const hashPositions = new Map<number, number>();
+  let visiblePrefixCount = 0;
   const hasHashLane = algorithm === 'hash-map';
-  const arrayPitch = Math.min(hasHashLane ? 124 : 150, (hasHashLane ? 580 : 980) / Math.max(nums.length - 1, 1));
+  const arrayPitch = Math.min(hasHashLane ? 124 : 150, (hasHashLane ? 580 / Math.max(nums.length - 1, 1) : 960 / nums.length));
   const arrayCenterX = hasHashLane ? 350 : 600;
-  const hashX = 790;
+  const hashX = 730;
   const hashY = 270;
 
   const addStep = (
@@ -139,12 +152,24 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       label: String(value),
       x: arrayCenterX + (index - (nums.length - 1) / 2) * arrayPitch,
       y: 270,
-      status: focus.includes(index) ? resolveArrayStatus(algorithm, operation, index, focus) : visited.has(index) ? 'visited' : 'idle',
+      status: operation === 'inspect' && focus.includes(index) ? 'current' : focus.includes(index) ? resolveArrayStatus(algorithm, operation, index, focus) : visited.has(index) ? 'visited' : 'idle',
       badge: String(index),
     }));
+    if (algorithm === 'prefix-sum') {
+      for (let index = 0; index < visiblePrefixCount; index++) {
+        nodes.push({
+          id: `prefix-${index}`,
+          label: `P${index}=${prefix[index]}`,
+          x: arrayCenterX + (index - (nums.length - 1) / 2) * arrayPitch,
+          y: 390,
+          status: index === visiblePrefixCount - 1 && operation === 'read' ? 'compare' : 'visited',
+          badge: `P${index}`,
+        });
+      }
+    }
     if (algorithm === 'hash-map') {
       const visibleKeys = new Set(frequencies.keys());
-      if (operation === 'compare' && targetPrefix !== undefined) visibleKeys.add(targetPrefix);
+      if (targetPrefix !== undefined && (operation === 'lookup' || operation === 'compare' || operation === 'match')) visibleKeys.add(targetPrefix);
       Array.from(visibleKeys).forEach((key) => {
         const slot = hashPositions.get(key) ?? hashPositions.size;
         hashPositions.set(key, slot);
@@ -152,9 +177,9 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
         nodes.push({
           id: `hash-${key}`,
           label: `${key} × ${count}`,
-          x: hashX + (slot % 2) * 108,
+          x: 790 + (slot % 2) * 108,
           y: hashY + Math.floor(slot / 2) * 68,
-          status: key === targetPrefix && operation === 'compare' && count > 0 ? 'compare' : operation === 'match' && key === targetPrefix ? 'done' : operation === 'insert' && key === variables.sum ? 'current' : count === 0 ? 'idle' : 'visited',
+          status: key === targetPrefix && operation === 'lookup' && count > 0 ? 'compare' : operation === 'match' && key === targetPrefix ? 'done' : operation === 'insert' && key === variables.sum ? 'current' : count === 0 ? 'idle' : 'visited',
           badge: key === targetPrefix ? 'sum−k' : 'sum',
         });
       });
@@ -171,7 +196,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       binding: { anchorIds: [anchor], variables },
       frame: {
         nodes,
-        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: { x: current.x, y: current.y + 48 }, to: algorithm === 'hash-map' && operation === 'compare' ? { x: (targetNode?.x ?? hashX) - 48, y: targetNode?.y ?? hashY } : operation === 'insert' && pendingHashNode ? { x: pendingHashNode.x - 48, y: pendingHashNode.y } : { x: current.x, y: current.y + 52 }, text: algorithm === 'hash-map' && operation === 'compare' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 122, y: hashY - 40 }, to: { x: hashX - 48, y: hashY }, text: '初始化频次 1' }] : [],
+        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: { x: current.x, y: current.y + 48 }, to: algorithm === 'hash-map' && operation === 'lookup' ? { x: (targetNode?.x ?? hashX) - 48, y: targetNode?.y ?? hashY } : operation === 'insert' && pendingHashNode ? { x: pendingHashNode.x - 48, y: pendingHashNode.y } : { x: current.x, y: current.y + 52 }, text: algorithm === 'hash-map' && operation === 'lookup' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 122, y: hashY - 40 }, to: { x: hashX - 48, y: hashY }, text: '初始化频次 1' }] : [],
         ranges: ranges.map((range) => ({ ...range })),
         candidate,
         result,
@@ -188,18 +213,23 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
     frequencies.set(0, 1);
     addStep('init', [], phrase.initHash, 'hash-init', { sum: 0 });
     for (let index = 0, sum = 0; index < nums.length; index++) {
+      addStep('inspect', [index], phrase.inspect(index, nums[index]), 'hash-read', { index, value: nums[index], sum });
       sum += nums[index];
       visited.add(index);
-      addStep('read', [index], phrase.read(index, nums[index], sum), 'hash-read', { index, value: nums[index], sum });
+      addStep('read', [index], phrase.read(index, nums[index], sum), 'hash-prefix', { index, value: nums[index], sum });
       const target = sum - k;
       const matches = frequencies.get(target) ?? 0;
-      addStep('compare', [index], phrase.query(target, k), 'hash-query', { index, sum, target, matches }, target);
+      addStep('lookup', [index], phrase.query(target, k), 'hash-query', { index, sum, target, matches }, target);
+      if (matches === 0) {
+        addStep('compare', [index], phrase.notFound(target, k), 'hash-query', { index, sum, target, matches }, target);
+      }
       if (matches > 0) {
+        addStep('match', [index], phrase.hit(target, matches, k), 'hash-match', { index, sum, target, matches }, target);
         result += matches;
         const starts = Array.from({ length: index + 1 }, (_, start) => start)
           .filter((start) => prefix[index + 1] - prefix[start] === k);
         starts.forEach((start) => ranges.push({ start, end: index, sum: k }));
-        addStep('match', [index], phrase.hit(target, matches, k), 'hash-match', { index, sum, target, matches }, target);
+        addStep('read', [index], phrase.recordHits(matches, target, result), 'hash-query', { index, sum, target, matches, result });
       }
       frequencies.set(sum, (frequencies.get(sum) ?? 0) + 1);
       addStep('insert', [index], phrase.insert(sum), 'hash-insert', { index, sum, count: frequencies.get(sum) ?? 0 });
@@ -208,7 +238,16 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
     return steps;
   }
 
-  addStep('init', [], algorithm === 'brute-force' ? phrase.initBrute : phrase.initPrefix, algorithm === 'brute-force' ? 'brute-init' : 'prefix-init', { target: k });
+  if (algorithm === 'brute-force') addStep('init', [], phrase.initBrute, 'brute-init', { target: k });
+  if (algorithm === 'prefix-sum') {
+    visiblePrefixCount = 1;
+    addStep('init', [], phrase.prefixStart, 'prefix-init', { prefixIndex: 0, prefix: 0 });
+    for (let index = 0; index < nums.length; index++) {
+      addStep('inspect', [index], phrase.inspect(index, nums[index]), 'prefix-init', { index, value: nums[index], prefix: prefix[index] });
+      visiblePrefixCount = index + 2;
+      addStep('read', [index], phrase.prefixBuild(index, nums[index], prefix[index + 1]), 'prefix-init', { index, value: nums[index], prefix: prefix[index], nextPrefix: prefix[index + 1] });
+    }
+  }
   for (let start = 0; start < nums.length; start++) {
     let running = 0;
     for (let end = start; end < nums.length; end++) {
@@ -218,6 +257,10 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       const focus = start === end ? [end] : [start, end];
       const anchor = algorithm === 'prefix-sum' ? 'prefix-compare' : 'brute-extend';
       const candidate = { start, end, sum };
+      if (algorithm === 'brute-force') {
+        addStep('inspect', [end], phrase.inspect(end, nums[end]), 'brute-extend', { start, end, value: nums[end], sum: sum - nums[end] });
+        addStep('read', [end], phrase.extend(start, end, nums[end], sum), 'brute-extend', { start, end, value: nums[end], sum }, undefined, candidate);
+      }
       addStep('compare', focus, algorithm === 'prefix-sum'
         ? phrase.prefixCompare(end, start, sum, k)
         : phrase.bruteCompare(start, end, sum), anchor, { start, end, sum }, undefined, candidate);

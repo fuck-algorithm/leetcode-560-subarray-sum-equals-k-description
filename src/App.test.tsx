@@ -41,7 +41,7 @@ describe('product navigation, locale and code panels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Language' }));
     fireEvent.click(screen.getByRole('option', { name: '简中' }));
     expect(screen.getByRole('heading', { name: 'LeetCode 560：和为 K 的子数组' })).toBeInTheDocument();
-    expect(screen.getByTestId('step-counter')).toHaveTextContent('2 / 21');
+    expect(screen.getByTestId('step-counter')).toHaveTextContent('2 / 31');
     expect(localStorage.getItem('leetcode-560-ui-preferences')).toContain('zh-CN');
   });
 

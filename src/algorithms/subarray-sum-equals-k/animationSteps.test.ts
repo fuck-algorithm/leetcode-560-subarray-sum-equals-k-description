@@ -40,7 +40,7 @@ describe('buildAlgorithmSteps', () => {
       expect(focused.filter((node) => node.id.startsWith('array-') && node.status === 'current').length).toBeLessThanOrEqual(1);
       expect(step.frame.nodes.filter((node) => node.status === 'compare').length).toBeLessThanOrEqual(1);
     });
-    expect(steps.filter((step) => step.operation === 'compare').every((step) => step.frame.arrows.some((arrow) => arrow.text.startsWith('查找')))).toBe(true);
+    expect(steps.filter((step) => step.operation === 'lookup').every((step) => step.frame.arrows.some((arrow) => arrow.text.startsWith('查找')))).toBe(true);
   });
 
   it('centers the input structure and keeps array and hash nodes from overlapping', () => {
@@ -69,7 +69,7 @@ describe('buildAlgorithmSteps', () => {
     (['brute-force', 'prefix-sum', 'hash-map'] as const).forEach((algorithm) => {
       const steps = buildAlgorithmSteps(algorithm, Array(8).fill(1), 2);
       steps.forEach((step) => step.frame.nodes.forEach((node) => {
-        const width = node.id.startsWith('hash-') ? 84 : 72;
+        const width = node.id.startsWith('hash-') ? 84 : node.id.startsWith('prefix-') ? 92 : 72;
         expect(node.x - width / 2).toBeGreaterThanOrEqual(0);
         expect(node.x + width / 2).toBeLessThanOrEqual(1200);
       }));
@@ -82,6 +82,7 @@ describe('buildAlgorithmSteps', () => {
     const candidates = steps.filter((step) => step.operation === 'compare');
     const results = steps.filter((step) => step.operation === 'match');
     expect(candidates).toHaveLength(nums.length * (nums.length + 1) / 2);
+    expect(steps.filter((step) => step.operation === 'read')).toHaveLength(candidates.length);
     expect(results).toHaveLength(0);
     expect(candidates.map((step) => step.frame.candidate)).toEqual([
       { start: 0, end: 0, sum: 1 },
@@ -102,10 +103,10 @@ describe('buildAlgorithmSteps', () => {
     const misses = steps.filter((step) => step.operation === 'compare' && step.binding.variables.matches === 0);
     expect(misses.every((step) => step.frame.nodes.some((node) => node.id === `hash-${step.binding.variables.target}` && node.status === 'idle'))).toBe(true);
     expect(steps[0].frame.arrows[0].text).toContain('初始化');
-    expect(steps.filter((step) => step.operation === 'match').flatMap((step) => step.frame.ranges))
+    expect(steps.filter((step) => step.operation === 'read' && step.binding.variables.result !== undefined).flatMap((step) => step.frame.ranges))
       .toEqual(expect.arrayContaining([{ start: 0, end: 2, sum: 2 }]));
     steps.forEach((step) => {
-      expect(step.frame.nodes.filter((node) => node.status === 'current')).toHaveLength(step.operation === 'read' || step.operation === 'compare' || step.operation === 'insert' && step.binding.variables.index !== undefined ? 1 : 0);
+      expect(step.frame.nodes.filter((node) => node.status === 'current')).toHaveLength(step.operation === 'inspect' || step.operation === 'read' || step.operation === 'compare' || step.operation === 'lookup' || step.operation === 'insert' && step.binding.variables.index !== undefined ? 1 : 0);
       if (step.operation === 'compare') expect(step.frame.nodes.filter((node) => node.status === 'compare').length).toBeLessThanOrEqual(1);
       if (step.operation === 'match') expect(step.frame.nodes.filter((node) => node.status === 'done').some((node) => node.id.startsWith('array-'))).toBe(true);
     });
@@ -128,6 +129,22 @@ describe('buildAlgorithmSteps', () => {
     expect(() => buildAlgorithmSteps('hash-map', Array(9).fill(1), 2)).toThrow(RangeError);
     expect(() => buildAlgorithmSteps('hash-map', [1.5], 2)).toThrow(RangeError);
     expect(() => buildAlgorithmSteps('hash-map', [], 2)).toThrow(RangeError);
+  });
+
+  it('exposes prefix-boundary snapshots before enumerating prefix differences', () => {
+    const steps = buildAlgorithmSteps('prefix-sum', [1, 2, -1], 2);
+    const prefixBuilds = steps.filter((step) => step.operation === 'read' && step.binding.variables.nextPrefix !== undefined);
+    expect(prefixBuilds.map((step) => step.binding.variables.nextPrefix)).toEqual([1, 3, 2]);
+    expect(prefixBuilds.map((step) => step.frame.nodes.filter((node) => node.id.startsWith('prefix-')).length)).toEqual([2, 3, 4]);
+    expect(steps.filter((step) => step.operation === 'compare')).toHaveLength(6);
+  });
+
+  it('adds inspection, accumulation, comparison and answer frames for brute force', () => {
+    const steps = buildAlgorithmSteps('brute-force', [1, 2], 3);
+    expect(steps.filter((step) => step.operation === 'inspect')).toHaveLength(3);
+    expect(steps.filter((step) => step.operation === 'read')).toHaveLength(3);
+    expect(steps.filter((step) => step.operation === 'compare')).toHaveLength(3);
+    expect(steps.filter((step) => step.operation === 'match')).toHaveLength(1);
   });
 
   it('keeps IDs and coordinates stable for every existing hash key', () => {

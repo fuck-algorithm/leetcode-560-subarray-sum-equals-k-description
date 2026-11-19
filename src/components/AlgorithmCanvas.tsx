@@ -14,11 +14,14 @@ const algorithmLabel = (step: AlgorithmStep): { id: string; text: string; x: num
   const first = arrayNodes[0];
   const last = arrayNodes[arrayNodes.length - 1];
   const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
+  const prefixLane = step.frame.nodes.some((node) => node.id.startsWith('prefix-'));
   const arrayX = ((first?.x ?? 600) + (last?.x ?? 600)) / 2;
   const hashX = hashNodes.length ? (Math.min(...hashNodes.map((node) => node.x)) + Math.max(...hashNodes.map((node) => node.x))) / 2 : 830;
   return hashNodes.length > 0
     ? [{ id: 'array-label', text: '输入数组：逐项累加', x: arrayX, y: 215 }, { id: 'hash-label', text: '前缀和频次表：历史记录', x: hashX, y: 215 }]
-    : [{ id: 'array-label', text: '输入数组：枚举连续区间', x: arrayX, y: 215 }];
+    : prefixLane
+      ? [{ id: 'array-label', text: '前缀边界：P[r+1] − P[l] = 子数组和', x: arrayX, y: 215 }]
+      : [{ id: 'array-label', text: '输入数组：枚举连续区间', x: arrayX, y: 215 }];
 };
 
 const colors = {
@@ -75,15 +78,15 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
     nodes
       .attr('data-status', (node) => node.status)
       .transition('move').duration(ms).ease(d3.easeCubicOut)
-      .attr('transform', (node) => `translate(${node.x - 36},${node.y - 24})`).attr('opacity', 1);
+      .attr('transform', (node) => `translate(${node.x - (node.id.startsWith('prefix-') ? 46 : 36)},${node.y - 24})`).attr('opacity', 1);
     nodes.select('rect').transition('state').duration(motionDuration('state', speed, reducedMotion))
-      .attr('width', (node) => node.id.startsWith('hash-') ? 84 : 72)
+      .attr('width', (node) => node.id.startsWith('hash-') ? 84 : node.id.startsWith('prefix-') ? 92 : 72)
       .attr('fill', (node) => colors[node.status].fill)
       .attr('stroke', (node) => colors[node.status].stroke)
       .attr('stroke-width', (node) => node.status === 'current' || node.status === 'done' ? 3 : 1.5);
-    nodes.select<SVGTextElement>('.node-label').attr('x', (node) => node.id.startsWith('hash-') ? 42 : 36).attr('y', 25)
+    nodes.select<SVGTextElement>('.node-label').attr('x', (node) => node.id.startsWith('hash-') ? 42 : node.id.startsWith('prefix-') ? 46 : 36).attr('y', 25)
       .attr('fill', (node) => colors[node.status].text).text((node) => node.label);
-    nodes.select('.node-badge').attr('x', (node) => node.id.startsWith('hash-') ? 42 : 36).attr('y', -5)
+    nodes.select('.node-badge').attr('x', (node) => node.id.startsWith('hash-') ? 42 : node.id.startsWith('prefix-') ? 46 : 36).attr('y', -5)
       .attr('fill', '#64748b').text((node) => node.badge ?? '');
 
     const arrowPaths = root.select<SVGGElement>('.layer-arrows').selectAll<SVGPathElement, AlgorithmStep['frame']['arrows'][number]>('path.flow-arrow')
@@ -109,7 +112,7 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
       .join((enter) => enter.append('rect').attr('class', 'answer-range').attr('height', 6).attr('rx', 2).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
     const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
     const arrayX = (index: number) => arrayNodes.find((node) => node.id === `array-${index}`)?.x ?? 100;
-    const rangeLaneStart = 500;
+    const rangeLaneStart = 480;
     const rangeLanes: AlgorithmStep['frame']['ranges'][] = [];
     const rangeLaneById = new Map<string, number>();
     displayedRanges.forEach((range) => {
