@@ -34,9 +34,9 @@
 
 - 哈希查询/频次写入箭头改为二次贝塞尔路径，箭头标签锚定曲线中点；增加几何纯函数单测，并在 E2E-006 中确认哈希帧实际产生 `Q` 曲线路径。
 - 新节点以轻微上浮、缩放和淡入出现；既有元素沿命名过渡更新，曲线只在新箭头进入时生长；状态反馈改为柔和阴影与圆角，reduced-motion 下跳过入场和描线。
-- 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 71 tests，lines 100%、functions 80%、branches 77.31%）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS（Webpack 有过期 Browserslist 与 bundle size 警告）；`npm run test:e2e` PASS（17 个基础用例 + 4 个动效验收，共 21/21）；`git diff --check` PASS。
+- 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 71 tests，lines 100%、functions 80%、branches 77.31%）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS（Webpack 有过期 Browserslist 与 bundle size 警告）；`npm run qa:repo` PASS；GitHub Actions 45253954625 PASS 且 Pages 已部署；`npm run test:e2e` PASS（17 个基础用例 + 4 个动效验收，共 21/21）；`git diff --check` PASS。
 - `npm run test:coverage`：PASS，按 Jest 配置纳入算法及产品工具模块统计；实测 lines 100%、functions 80%、branches 77.31%，高于要求的 60%/60%/50%。覆盖率范围及被排除的未使用旧组件均在 `jest.config.js` 和本报告明确列出。
-- 本轮真实页面检查期间修复节点入场状态回调错误及 reduced-motion 快速切帧时退场残留。新增浏览器覆盖 reduced-motion 信息保持、哈希查询曲线、10 次快跳无重复元素和 1x/3x 播放；Playwright 全部 21/21 通过，生成曲线帧截图（1366×768、1920×1080）、reduced-motion 截图、1x/3x 播放截图及录像，均保存在 `test-results/motion-acceptance-*`。另新增快速切换 prefers-reduced-motion 时中断节点 enter transition 的保护，避免已进入动画继续推进。
+- 本轮真实页面检查期间修复节点入场状态回调错误及 reduced-motion 快速切帧时退场残留。新增浏览器覆盖 reduced-motion 信息保持、哈希查询曲线、10 次快跳无重复元素和 1x/3x 播放；Playwright 全部 21/21 通过，生成曲线帧截图（1366×768、1920×1080）、reduced-motion 截图、1x/3x 播放截图及录像，均保存在 `test-results/motion-acceptance-*`。GitHub Actions run `45253954625` 的依赖安装、lint、type-check、Jest coverage、Vitest coverage、Playwright 21/21、build、Pages configure/upload/deploy 全部 PASS；线上 HTML 已更新至 `main.1a6a8837d9c1aa2095c7.js`。另新增快速切换 prefers-reduced-motion 时中断节点 enter transition 的保护，避免已进入动画继续推进。
 
 ## B1–B7
 
@@ -57,7 +57,7 @@ B6 权重折算：`(5/5×10)+(4/5×15)+(5/5×15)+(4/5×15)+(5/5×10)+(5/5×10)+(
 | AC-001 | PASS | E2E-001 双视口空间预算及单屏断言、截图 |
 | AC-002~005 | PASS | E2E-002/014 链接、Star 与失败缓存回退断言 |
 | AC-006~014 | PASS | E2E-003~013 覆盖解法切换、输入、代码语言、交互、速度记忆、二维码和配色 |
-| AC-015 | PASS | Pages workflow 含部署步骤、lint/type-check、Jest/Vitest、Playwright CI 门禁；`qa:repo` PASS |
+| AC-015 | PASS | Pages workflow 含 lint/type-check、Jest/Vitest、Playwright 门禁及正式部署；Actions run `45253954625` PASS |
 | AC-016~019 | PASS | lint、type-check、build、Jest/Vitest coverage、Playwright E2E 全绿；README、测试与验收文档已核对 |
 | AC-020 | PASS | 新增 `tests/unit/utils/validateInput.test.ts` 并由 Vitest 执行 |
 | AC-021 | PASS | 新增 `vitest.config.ts` 与 package scripts；Vitest 9 项测试通过、目标覆盖率 100% |
@@ -66,4 +66,4 @@ B6 权重折算：`(5/5×10)+(4/5×15)+(5/5×15)+(4/5×15)+(5/5×10)+(5/5×10)+(
 
 ## 结论
 
-**PASS**。AC-001~AC-023 均有对应自动化或明确证据；动效、单测目录、Vitest 配置及输入校验单测全部已补齐。本地代码尚未推送至 GitHub。
+**PASS**。AC-001~AC-023 均有对应自动化或明确证据；两套单测、动效证据和 CI 已补齐，Actions 通过且 GitHub Pages 已部署。
