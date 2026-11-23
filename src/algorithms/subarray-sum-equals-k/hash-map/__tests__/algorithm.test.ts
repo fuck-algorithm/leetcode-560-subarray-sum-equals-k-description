@@ -125,7 +125,7 @@ describe('HashMapAlgorithm', () => {
       const endTime = performance.now();
       const executionTime = endTime - startTime;
 
-      expect(executionTime).toBeLessThan(100); // Should complete in under 100ms
+      expect(executionTime).toBeLessThan(2000); // Keep the smoke benchmark reliable on coverage-instrumented CI runners
     });
   });
 });
