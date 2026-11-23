@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { AlgorithmStep, StepNode } from '@/algorithms/subarray-sum-equals-k/animationSteps';
 import { motionDuration } from '@/utils/motion';
+import { arrowPath, arrowPoint } from '@/utils/arrowGeometry';
 
 interface Props {
   step: AlgorithmStep;
@@ -57,7 +58,7 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
     const svg = d3.select(svgRef.current);
     const root = svg.select<SVGGElement>('.zoom-layer');
     const ms = motionDuration('move', speed, reducedMotion);
-    root.selectAll<SVGElement, unknown>('*').interrupt();
+    root.selectAll<SVGElement, unknown>('*').interrupt('exit');
 
     const nodeLayer = root.select<SVGGElement>('.layer-nodes');
     const nodes = nodeLayer
@@ -65,8 +66,8 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
       .data(step.frame.nodes, (node) => node.id)
       .join(
         (enter) => {
-          const group = enter.append('g').attr('class', 'canvas-node').attr('data-node-id', (node) => node.id).attr('opacity', 0);
-          group.append('rect').attr('rx', 4).attr('height', 48);
+          const group = enter.append('g').attr('class', 'canvas-node').attr('data-node-id', (node) => node.id).attr('data-entering', 'true').attr('opacity', 0).attr('transform', (node) => `translate(${node.x - (node.id.startsWith('prefix-') ? 46 : 36)},${node.y - 32}) scale(.96)`);
+          group.append('rect').attr('rx', 10).attr('height', 48);
           group.append('text').attr('class', 'node-label').attr('text-anchor', 'middle').attr('dominant-baseline', 'middle');
           group.append('text').attr('class', 'node-badge').attr('text-anchor', 'middle');
           return group;
@@ -75,10 +76,15 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
         (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }),
       );
 
-    nodes
-      .attr('data-status', (node) => node.status)
+    nodes.attr('data-status', (node) => node.status);
+    const enteringNodes = nodes.filter('[data-entering="true"]');
+    nodes.filter(function () { return d3.select(this).attr('data-entering') !== 'true'; })
       .transition('move').duration(ms).ease(d3.easeCubicOut)
-      .attr('transform', (node) => `translate(${node.x - (node.id.startsWith('prefix-') ? 46 : 36)},${node.y - 24})`).attr('opacity', 1);
+      .attr('transform', (node) => `translate(${node.x - (node.id.startsWith('prefix-') ? 46 : 36)},${node.y - 24}) scale(1)`).attr('opacity', 1);
+    if (reducedMotion) enteringNodes.interrupt('enter').attr('transform', (node) => `translate(${node.x - (node.id.startsWith('prefix-') ? 46 : 36)},${node.y - 24}) scale(1)`).attr('opacity', 1).attr('data-entering', null);
+    else enteringNodes.transition('enter').duration(motionDuration('enter', speed, reducedMotion)).ease(d3.easeBackOut.overshoot(1.15))
+      .attr('transform', (node) => `translate(${node.x - (node.id.startsWith('prefix-') ? 46 : 36)},${node.y - 24}) scale(1)`).attr('opacity', 1)
+      .on('end', function () { d3.select(this).attr('data-entering', null); });
     nodes.select('rect').transition('state').duration(motionDuration('state', speed, reducedMotion))
       .attr('width', (node) => node.id.startsWith('hash-') ? 84 : node.id.startsWith('prefix-') ? 92 : 72)
       .attr('fill', (node) => colors[node.status].fill)
@@ -91,25 +97,46 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
 
     const arrowPaths = root.select<SVGGElement>('.layer-arrows').selectAll<SVGPathElement, AlgorithmStep['frame']['arrows'][number]>('path.flow-arrow')
       .data(step.frame.arrows, (arrow) => arrow.id)
-      .join((enter) => enter.append('path').attr('class', 'flow-arrow').attr('fill', 'none').attr('pathLength', 1).attr('stroke-dasharray', '1 1').attr('stroke-dashoffset', reducedMotion ? 0 : 1), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
-    arrowPaths.attr('data-arrow-id', (arrow) => arrow.id).attr('d', (arrow) => `M${arrow.from.x},${arrow.from.y} L${arrow.to.x},${arrow.to.y}`)
-      .attr('stroke', '#258464').attr('stroke-width', 2.5).attr('marker-end', 'url(#arrow-tip)').transition('draw').duration(motionDuration('arrow', speed, reducedMotion)).ease(d3.easeCubicOut).attr('stroke-dashoffset', 0).attr('opacity', 1);
+      .join((enter) => enter.append('path').attr('class', 'flow-arrow').attr('data-entering', 'true').attr('fill', 'none').attr('pathLength', 1).attr('d', arrowPath).attr('stroke-dasharray', reducedMotion ? null : '1 1').attr('stroke-dashoffset', reducedMotion ? null : 1), (update) => update.interrupt('exit'), (exit) => {
+        if (reducedMotion) return exit.remove();
+        return exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); });
+      });
+    arrowPaths.attr('data-arrow-id', (arrow) => arrow.id)
+      .attr('stroke', '#258464').attr('stroke-width', 2.5).attr('marker-end', 'url(#arrow-tip)')
+      .transition('move').duration(ms).ease(d3.easeCubicOut).attr('d', arrowPath).attr('opacity', 1);
+    const enteringArrows = arrowPaths.filter('[data-entering="true"]');
+    if (reducedMotion) enteringArrows.attr('stroke-dasharray', null).attr('stroke-dashoffset', null).attr('data-entering', null);
+    else enteringArrows.transition('draw').duration(motionDuration('arrow', speed, reducedMotion)).ease(d3.easeCubicOut).attr('stroke-dashoffset', 0)
+      .on('end', function () { d3.select(this).attr('data-entering', null).attr('stroke-dasharray', null).attr('stroke-dashoffset', null); });
     const arrowLabels = root.select<SVGGElement>('.layer-arrows').selectAll<SVGTextElement, AlgorithmStep['frame']['arrows'][number]>('text.focus-arrow')
       .data(step.frame.arrows, (arrow) => arrow.id)
-      .join((enter) => enter.append('text').attr('class', 'focus-arrow').attr('text-anchor', 'middle').attr('opacity', 1), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
-    arrowLabels.attr('x', (arrow) => (arrow.from.x + arrow.to.x) / 2).attr('y', (arrow) => (arrow.from.y + arrow.to.y) / 2 - 10).attr('fill', '#17674e').text((arrow) => arrow.text)
-      .attr('opacity', 1);
+      .join((enter) => enter.append('text').attr('class', 'focus-arrow').attr('text-anchor', 'middle').attr('opacity', 1), (update) => update.interrupt('exit'), (exit) => {
+        if (reducedMotion) return exit.remove();
+        return exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); });
+      });
+    arrowLabels.attr('fill', '#17674e').text((arrow) => arrow.text)
+      .transition('move').duration(ms).ease(d3.easeCubicOut)
+      .attr('x', (arrow) => arrowPoint(arrow, 0.5).x).attr('y', (arrow) => arrowPoint(arrow, 0.5).y - (arrow.curve ? 14 : 10)).attr('opacity', 1);
     const arrowBackplates = root.select<SVGGElement>('.layer-arrows').selectAll<SVGRectElement, AlgorithmStep['frame']['arrows'][number]>('rect.arrow-label-backplate')
       .data(step.frame.arrows, (arrow) => arrow.id)
-      .join((enter) => enter.append('rect').attr('class', 'arrow-label-backplate').attr('height', 20).attr('rx', 6).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
-    arrowBackplates.attr('x', (arrow) => (arrow.from.x + arrow.to.x) / 2 - Math.max(34, arrow.text.length * 3.4 + 10)).attr('y', (arrow) => (arrow.from.y + arrow.to.y) / 2 - 26)
-      .attr('width', (arrow) => Math.max(68, arrow.text.length * 6.8 + 20)).attr('fill', '#f9fcfa').attr('stroke', '#b9cec2').attr('stroke-width', 1).attr('opacity', 0.96).lower();
+      .join((enter) => enter.append('rect').attr('class', 'arrow-label-backplate').attr('height', 20).attr('rx', 6).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => {
+        if (reducedMotion) return exit.remove();
+        return exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); });
+      });
+    arrowBackplates.attr('width', (arrow) => Math.max(68, arrow.text.length * 6.8 + 20)).attr('fill', '#f9fcfa').attr('stroke', '#b9cec2').attr('stroke-width', 1).attr('opacity', 0.96)
+      .transition('move').duration(ms).ease(d3.easeCubicOut)
+      .attr('x', (arrow) => arrowPoint(arrow, 0.5).x - Math.max(34, arrow.text.length * 3.4 + 10))
+      .attr('y', (arrow) => arrowPoint(arrow, 0.5).y - (arrow.curve ? 30 : 26));
+    arrowBackplates.lower();
     arrowLabels.raise();
 
     const displayedRanges = step.frame.candidate && !step.frame.ranges.some((range) => range.start === step.frame.candidate?.start && range.end === step.frame.candidate?.end) ? [...step.frame.ranges, step.frame.candidate] : step.frame.ranges;
     const ranges = root.select<SVGGElement>('.layer-ranges').selectAll<SVGRectElement, AlgorithmStep['frame']['ranges'][number]>('rect.answer-range')
       .data(displayedRanges, (range) => `${range.start}-${range.end}`)
-      .join((enter) => enter.append('rect').attr('class', 'answer-range').attr('height', 6).attr('rx', 2).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); }));
+      .join((enter) => enter.append('rect').attr('class', 'answer-range').attr('height', 6).attr('rx', 2).attr('opacity', 0), (update) => update.interrupt('exit'), (exit) => {
+        if (reducedMotion) return exit.remove();
+        return exit.transition('exit').duration(motionDuration('exit', speed, reducedMotion)).attr('opacity', 0).on('end', function () { d3.select(this).remove(); });
+      });
     const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
     const arrayX = (index: number) => arrayNodes.find((node) => node.id === `array-${index}`)?.x ?? 100;
     const rangeLaneStart = 480;
@@ -123,10 +150,11 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step, reducedMotion, speed })
       rangeLaneById.set(`${range.start}-${range.end}`, laneIndex);
     });
     ranges.attr('data-range-id', (range) => `answer-${range.start}-${range.end}`)
+      .attr('fill', '#18765a').attr('width', (range) => Math.max(8, arrayX(range.end) - arrayX(range.start) + 52))
+      .transition('move').duration(ms).ease(d3.easeCubicOut)
       .attr('x', (range) => arrayX(range.start) - 36)
       .attr('y', (range) => rangeLaneStart + (rangeLaneById.get(`${range.start}-${range.end}`) ?? 0) * 14)
-      .attr('width', (range) => Math.max(8, arrayX(range.end) - arrayX(range.start) + 52))
-      .attr('fill', '#18765a').transition('move').duration(ms).attr('opacity', 0.8);
+      .attr('opacity', 0.8);
 
     const layoutLabels = root.select<SVGGElement>('.layer-labels').selectAll<SVGTextElement, { id: string; text: string; x: number; y: number }>('text.layout-label')
       .data(algorithmLabel(step), (label) => label.id)

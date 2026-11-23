@@ -158,9 +158,18 @@ describe('buildAlgorithmSteps', () => {
   });
 
   it('uses speed-aware motion tokens and disables motion when requested', () => {
+    expect(motionDuration('enter', 1, true)).toBe(0);
     expect(motionDuration('move', 1, true)).toBe(0);
+    expect(motionDuration('arrow', 1, true)).toBe(0);
     expect(motionDuration('move', 2, false)).toBeLessThanOrEqual(225);
     expect(motionDuration('state', 0.5, false)).toBeLessThanOrEqual(480);
+  });
+
+  it('routes long and vertical arrows along a smooth quadratic curve', () => {
+    const steps = buildAlgorithmSteps('hash-map', [1, -1, 2], 2);
+    const lookupArrows = steps.filter((step) => step.operation === 'lookup').flatMap((step) => step.frame.arrows);
+    expect(lookupArrows.length).toBeGreaterThan(0);
+    expect(lookupArrows.every((arrow) => arrow.curve !== undefined && arrow.curve < 0)).toBe(true);
   });
 
   it('keeps array node positions and identities stable across snapshots', () => {

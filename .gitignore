@@ -45,7 +45,15 @@ storybook-static/
 
 # Browser acceptance artifacts
 /playwright-report/
-/test-results/
+/test-results/*
+!/test-results/motion-acceptance-*/
+/test-results/motion-acceptance-*/trace.zip
+/test-results/motion-acceptance-*/error-context.md
+/test-results/motion-acceptance-*/test-failed-*.png
+!/test-results/motion-acceptance-*/lookup-curve*.png
+!/test-results/motion-acceptance-*/reduced-motion.png
+!/test-results/motion-acceptance-*/playback-*.png
+!/test-results/motion-acceptance-*/rapid-seek-recovered.png
 
 # Temporary files
 .tmp/

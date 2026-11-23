@@ -8,6 +8,7 @@ import { buildAlgorithmSteps } from '@/algorithms/subarray-sum-equals-k/animatio
 import type { AlgorithmType } from '@/types';
 import { codeLines, CODE_LANGUAGE_LABEL, type CodeLanguage, type UiLocale, UI_TEXT } from '@/utils/productUi';
 import { fetchStarCount } from '@/utils/starCount';
+import { validateInput } from '@/utils/validateInput';
 import { COMPLEXITY_INFO } from '@/utils/constants';
 import { CustomSelect } from '@/components/CustomSelect';
 import type { SelectOption } from '@/components/CustomSelect';
@@ -47,7 +48,7 @@ const App: React.FC = () => {
       const ui = JSON.parse(localStorage.getItem(UI_PREFS) ?? '{}') as { locale?: UiLocale; speed?: number };
       const code = localStorage.getItem(CODE_PREF) as CodeLanguage | null;
       if (ui.locale === 'en' || ui.locale === 'zh-CN') setLocale(ui.locale);
-      if (ui.speed === 0.5 || ui.speed === 1 || ui.speed === 2) dispatch(setPlaybackSpeed(ui.speed));
+      if (ui.speed === 0.5 || ui.speed === 1 || ui.speed === 2 || ui.speed === 3) dispatch(setPlaybackSpeed(ui.speed));
       if (code && CODE_LANGUAGES.includes(code)) setCodeLanguage(code);
     } catch { setStorageWarning(text.storage); }
     setIsPreferencesLoaded(true);
@@ -116,13 +117,12 @@ const App: React.FC = () => {
   const watchLabels = locale === 'en' ? { index: 'Index', result: 'Count', ranges: 'Matched ranges', current: 'Current', compare: 'Lookup / compare', visited: 'Visited', done: 'Answer', idle: 'Idle / absent' } : { index: '索引', result: '计数', ranges: '命中区间', current: '当前', compare: '查询 / 比较', visited: '已访问', done: '答案', idle: '未处理 / 不存在' };
   const localeOptions: SelectOption<UiLocale>[] = [{ value: 'en', label: 'EN' }, { value: 'zh-CN', label: '简中' }];
   const codeOptions: SelectOption<CodeLanguage>[] = CODE_LANGUAGES.map((language) => ({ value: language, label: CODE_LANGUAGE_LABEL[language] }));
-  const speedOptions: SelectOption<number>[] = [{ value: 0.5, label: '0.5×' }, { value: 1, label: '1×' }, { value: 2, label: '2×' }];
+  const speedOptions: SelectOption<number>[] = [{ value: 0.5, label: '0.5×' }, { value: 1, label: '1×' }, { value: 2, label: '2×' }, { value: 3, label: '3×' }];
   const currentArrayCount = step.frame.nodes.filter((node) => node.id.startsWith('array-')).filter((node) => node.status === 'current').length;
   const submitInput = (value: string) => {
-    const match = value.match(/^([\d\s,+-]+);\s*k\s*=\s*(-?\d+)$/i);
-    const nums = match?.[1].split(/[\s,]+/).filter(Boolean).map(Number) ?? [];
-    if (match && nums.length && nums.length <= 8 && nums.every((n) => Number.isInteger(n) && Math.abs(n) <= 100) && Math.abs(Number(match[2])) <= 100) {
-      setInputError(''); dispatch(resetAnimation({ nums, k: Number(match[2]) })); return;
+    const validation = validateInput(value);
+    if (validation.valid) {
+      setInputError(''); dispatch(resetAnimation(validation.value)); return;
     }
     setInputError(text.invalid);
   };

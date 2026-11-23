@@ -62,5 +62,5 @@ const anchorByLine: Record<AlgorithmType, string[]> = {
   'hash-map': ['hash-init', 'hash-init', 'hash-read', 'hash-read', 'hash-query', 'hash-insert', 'hash-done'],
 };
 export function codeLines(language: CodeLanguage, algorithm: AlgorithmType) {
-  return implementations[language][algorithm].map((text, index) => ({ anchor: anchorByLine[algorithm][index] ?? anchorByLine[algorithm].at(-1)!, text }));
+  return implementations[language][algorithm].map((text, index) => ({ anchor: anchorByLine[algorithm][index] ?? anchorByLine[algorithm][anchorByLine[algorithm].length - 1]!, text }));
 }

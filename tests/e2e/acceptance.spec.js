@@ -69,6 +69,11 @@ test('E2E-006: step snapshots synchronize narration, code anchors and one curren
   await expect(page.locator('[data-status="current"]')).toHaveCount(1);
   await expect(page.locator('.code-line.active').first()).toBeVisible();
   await expect(page.locator('.layer-legend .legend-item')).toHaveCount(5);
+  await page.getByRole('button', { name: /Hash map|哈希表/i }).click();
+  for (let index = 0; index < 3; index++) await page.getByRole('button', { name: /Next →|下一步 →/ }).click();
+  await expect(page.locator('.operation-badge')).toContainText(/Lookup|查询/i);
+  await expect(page.locator('.flow-arrow').first()).toHaveAttribute('d', /Q/);
+  await expect(page.locator('.focus-arrow').first()).toContainText(/查找|Lookup/i);
 });
 
 test('E2E-007: keyboard controls move, play, pause and reset the timeline', async ({ page }) => {

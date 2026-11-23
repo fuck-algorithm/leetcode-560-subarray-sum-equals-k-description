@@ -37,7 +37,7 @@ describe('animation playback controls', () => {
   });
 
   it('clamps persisted playback speed to supported bounds', () => {
-    expect(reducer(initial, setPlaybackSpeed(9)).playbackSpeed).toBe(2);
+    expect(reducer(initial, setPlaybackSpeed(9)).playbackSpeed).toBe(3);
     expect(reducer(initial, setPlaybackSpeed(0)).playbackSpeed).toBe(0.5);
   });
 

@@ -106,7 +106,7 @@ const subarraySumSlice = createSlice({
     },
 
     setPlaybackSpeed: (state, action: PayloadAction<number>) => {
-      state.playbackSpeed = Math.max(0.5, Math.min(2.0, action.payload));
+      state.playbackSpeed = Math.max(0.5, Math.min(3.0, action.payload));
     },
 
     updateState: (state, action: PayloadAction<AnimationState>) => {

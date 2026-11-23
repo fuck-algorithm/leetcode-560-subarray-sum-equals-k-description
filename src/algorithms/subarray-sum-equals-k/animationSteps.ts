@@ -66,7 +66,7 @@ export interface AlgorithmStep {
   binding: { anchorIds: string[]; variables: Record<string, string | number> };
   frame: {
     nodes: StepNode[];
-    arrows: { id: string; from: { x: number; y: number }; to: { x: number; y: number }; text: string }[];
+    arrows: { id: string; from: { x: number; y: number }; to: { x: number; y: number }; text: string; curve?: number }[];
     ranges: StepRange[];
     candidate?: StepRange;
     result: number;
@@ -187,6 +187,15 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
     const current = focus.length > 0 ? nodes.find((node) => node.id === `array-${focus[0]}`) : undefined;
     const targetNode = algorithm === 'hash-map' && targetPrefix !== undefined ? nodes.find((node) => node.id === `hash-${targetPrefix}`) : undefined;
     const pendingHashNode = algorithm === 'hash-map' && operation === 'insert' ? nodes.find((node) => node.id === `hash-${variables.sum}`) : undefined;
+    const arrowTarget = algorithm === 'hash-map' && operation === 'lookup'
+      ? { x: (targetNode?.x ?? hashX) - 48, y: targetNode?.y ?? hashY }
+      : operation === 'insert' && pendingHashNode
+        ? { x: pendingHashNode.x - 48, y: pendingHashNode.y }
+        : undefined;
+    const arrowStart = current ? { x: current.x, y: current.y + 48 } : undefined;
+    const arrowCurve = arrowStart && arrowTarget
+      ? -Math.max(26, Math.min(54, Math.abs(arrowTarget.y - arrowStart.y) * 0.22))
+      : undefined;
     steps.push({
       id: steps.length,
       title: operationLabels[operation],
@@ -196,7 +205,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       binding: { anchorIds: [anchor], variables },
       frame: {
         nodes,
-        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: { x: current.x, y: current.y + 48 }, to: algorithm === 'hash-map' && operation === 'lookup' ? { x: (targetNode?.x ?? hashX) - 48, y: targetNode?.y ?? hashY } : operation === 'insert' && pendingHashNode ? { x: pendingHashNode.x - 48, y: pendingHashNode.y } : { x: current.x, y: current.y + 52 }, text: algorithm === 'hash-map' && operation === 'lookup' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 122, y: hashY - 40 }, to: { x: hashX - 48, y: hashY }, text: '初始化频次 1' }] : [],
+        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: arrowStart!, to: arrowTarget ?? { x: current.x, y: current.y + 52 }, curve: arrowCurve, text: algorithm === 'hash-map' && operation === 'lookup' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 122, y: hashY - 40 }, to: { x: hashX - 48, y: hashY }, curve: 22, text: '初始化频次 1' }] : [],
         ranges: ranges.map((range) => ({ ...range })),
         candidate,
         result,

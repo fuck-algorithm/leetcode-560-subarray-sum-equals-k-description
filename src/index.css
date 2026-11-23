@@ -66,7 +66,12 @@ button:focus-visible, a:focus-visible, [role='slider']:focus-visible { outline: 
 .algorithm-svg { display: block; width: 100%; min-height: 0; flex: 1 1 auto; background: #edf2ee; }
 .canvas-legend-svg { pointer-events: none; }
 .canvas-legend-svg .legend-item text { paint-order: stroke; stroke: #edf2ee; stroke-width: 3px; stroke-linejoin: round; }
-.canvas-node rect { transition: fill 240ms linear, stroke 240ms linear; }
+.canvas-node rect { transition: filter 280ms cubic-bezier(.22,.8,.24,1); }
+.canvas-node[data-status='current'] rect { filter: drop-shadow(0 5px 8px rgb(27 118 90 / .2)); }
+.canvas-node[data-status='done'] rect { filter: drop-shadow(0 3px 5px rgb(15 79 61 / .14)); }
+.flow-arrow { stroke-linecap: round; stroke-linejoin: round; }
+.focus-arrow { paint-order: stroke; stroke: #edf2ee; stroke-width: 5px; stroke-linejoin: round; font-size: 11px; font-weight: 700; }
+.arrow-label-backplate { filter: drop-shadow(0 2px 3px rgb(20 40 30 / .08)); }
 .structure-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); clip-path: inset(50%); white-space: nowrap; }
 .code-line code { white-space: pre-wrap; overflow-wrap: anywhere; }
 .node-label { font-size: 12px; font-weight: 600; }
