@@ -16,8 +16,9 @@ export const StepExplanation: React.FC<Props> = ({ step, current, total, algorit
         <small>{algorithmName} · {current + 1} / {total}</small>
         <h2>{step.title}</h2>
       </div>
-      <span className="operation-badge" data-operation={step.operation}>{step.operation}</span>
     </header>
+    <strong className="step-title-label">{step.title}</strong>
+    <span className="operation-badge" data-operation={step.operation}>{step.operation}</span>
     <p className="step-narration">{step.narration}</p>
     <dl className="variable-list">
       {Object.entries(step.binding.variables).slice(0, 4).map(([name, value]) => (

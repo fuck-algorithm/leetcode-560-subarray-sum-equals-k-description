@@ -1,5 +1,6 @@
 import type { AlgorithmType } from '@/types';
 import type { UiLocale } from '@/utils/productUi';
+import { verticalNodeEdge } from '@/utils/arrowGeometry';
 
 export type StepOperation = 'init' | 'inspect' | 'read' | 'compare' | 'lookup' | 'match' | 'insert' | 'done';
 export type NodeStatus = 'idle' | 'current' | 'compare' | 'visited' | 'done';
@@ -20,6 +21,8 @@ export interface StepNode {
   y: number;
   status: NodeStatus;
   badge?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface StepRange {
@@ -66,7 +69,7 @@ export interface AlgorithmStep {
   binding: { anchorIds: string[]; variables: Record<string, string | number> };
   frame: {
     nodes: StepNode[];
-    arrows: { id: string; from: { x: number; y: number }; to: { x: number; y: number }; text: string; curve?: number }[];
+    arrows: { id: string; from: { x: number; y: number }; to: { x: number; y: number }; text: string; kind?: 'data-flow'; route?: 'rounded-elbow' }[];
     ranges: StepRange[];
     candidate?: StepRange;
     result: number;
@@ -132,11 +135,19 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
   const frequencies = new Map<number, number>();
   const hashPositions = new Map<number, number>();
   let visiblePrefixCount = 0;
-  const hasHashLane = algorithm === 'hash-map';
-  const arrayPitch = Math.min(hasHashLane ? 124 : 150, (hasHashLane ? 580 / Math.max(nums.length - 1, 1) : 960 / nums.length));
-  const arrayCenterX = hasHashLane ? 350 : 600;
-  const hashX = 730;
-  const hashY = 270;
+  const arrayPitch = nums.length === 1 ? 0 : Math.min(220, 1040 / (nums.length - 1));
+  const prefixPitch = Math.min(220, 1040 / nums.length);
+  const arrayCenterX = 600;
+  const arrayY = algorithm === 'prefix-sum' ? 220 : 250;
+  const prefixY = 360;
+  const hashX = 600;
+  const hashY = 412;
+  const hashColumns = 4;
+  const arrayWidth = 72;
+  const hashWidth = 84;
+  const prefixWidth = 92;
+  const hashSlotPitchX = 112;
+  const hashSlotPitchY = 54;
 
   const addStep = (
     operation: StepOperation,
@@ -151,8 +162,10 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       id: `array-${index}`,
       label: String(value),
       x: arrayCenterX + (index - (nums.length - 1) / 2) * arrayPitch,
-      y: 270,
-      status: operation === 'inspect' && focus.includes(index) ? 'current' : focus.includes(index) ? resolveArrayStatus(algorithm, operation, index, focus) : visited.has(index) ? 'visited' : 'idle',
+      y: arrayY,
+      width: arrayWidth,
+      height: 48,
+      status: operation === 'inspect' && focus.includes(index) ? 'current' : algorithm === 'prefix-sum' && operation === 'compare' ? 'idle' : focus.includes(index) ? resolveArrayStatus(algorithm, operation, index, focus) : visited.has(index) ? 'visited' : 'idle',
       badge: String(index),
     }));
     if (algorithm === 'prefix-sum') {
@@ -160,9 +173,11 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
         nodes.push({
           id: `prefix-${index}`,
           label: `P${index}=${prefix[index]}`,
-          x: arrayCenterX + (index - (nums.length - 1) / 2) * arrayPitch,
-          y: 390,
-          status: index === visiblePrefixCount - 1 && operation === 'read' ? 'compare' : 'visited',
+          x: arrayCenterX + (index - (visiblePrefixCount - 1) / 2) * prefixPitch,
+          y: prefixY,
+          width: prefixWidth,
+          height: 48,
+          status: operation === 'compare' && candidate && (index === candidate.start || index === candidate.end + 1) ? 'compare' : 'idle',
           badge: `P${index}`,
         });
       }
@@ -177,8 +192,10 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
         nodes.push({
           id: `hash-${key}`,
           label: `${key} × ${count}`,
-          x: 790 + (slot % 2) * 108,
-          y: hashY + Math.floor(slot / 2) * 68,
+          x: hashX + (slot % hashColumns - (hashColumns - 1) / 2) * hashSlotPitchX,
+          y: hashY + Math.floor(slot / hashColumns) * hashSlotPitchY,
+          width: hashWidth,
+          height: 48,
           status: key === targetPrefix && operation === 'lookup' && count > 0 ? 'compare' : operation === 'match' && key === targetPrefix ? 'done' : operation === 'insert' && key === variables.sum ? 'current' : count === 0 ? 'idle' : 'visited',
           badge: key === targetPrefix ? 'sum−k' : 'sum',
         });
@@ -187,15 +204,9 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
     const current = focus.length > 0 ? nodes.find((node) => node.id === `array-${focus[0]}`) : undefined;
     const targetNode = algorithm === 'hash-map' && targetPrefix !== undefined ? nodes.find((node) => node.id === `hash-${targetPrefix}`) : undefined;
     const pendingHashNode = algorithm === 'hash-map' && operation === 'insert' ? nodes.find((node) => node.id === `hash-${variables.sum}`) : undefined;
-    const arrowTarget = algorithm === 'hash-map' && operation === 'lookup'
-      ? { x: (targetNode?.x ?? hashX) - 48, y: targetNode?.y ?? hashY }
-      : operation === 'insert' && pendingHashNode
-        ? { x: pendingHashNode.x - 48, y: pendingHashNode.y }
-        : undefined;
-    const arrowStart = current ? { x: current.x, y: current.y + 48 } : undefined;
-    const arrowCurve = arrowStart && arrowTarget
-      ? -Math.max(26, Math.min(54, Math.abs(arrowTarget.y - arrowStart.y) * 0.22))
-      : undefined;
+    const arrowTargetNode = operation === 'lookup' ? targetNode : operation === 'insert' ? pendingHashNode : undefined;
+    const arrowStart = current && arrowTargetNode ? verticalNodeEdge({ x: current.x, y: current.y, width: current.width ?? arrayWidth, height: current.height ?? 48 }, 'bottom', 8) : undefined;
+    const arrowTarget = current && arrowTargetNode ? verticalNodeEdge({ x: arrowTargetNode.x, y: arrowTargetNode.y, width: arrowTargetNode.width ?? hashWidth, height: arrowTargetNode.height ?? 48 }, 'top', 8) : undefined;
     steps.push({
       id: steps.length,
       title: operationLabels[operation],
@@ -205,7 +216,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       binding: { anchorIds: [anchor], variables },
       frame: {
         nodes,
-        arrows: current ? [{ id: `focus-${steps.length}-${current.id}`, from: arrowStart!, to: arrowTarget ?? { x: current.x, y: current.y + 52 }, curve: arrowCurve, text: algorithm === 'hash-map' && operation === 'lookup' ? `查找 ${targetPrefix}` : operation === 'insert' ? `记录 ${variables.sum}` : operationLabels[operation] }] : operation === 'init' && algorithm === 'hash-map' ? [{ id: `seed-${steps.length}-${hashPositions.size}`, from: { x: hashX - 122, y: hashY - 40 }, to: { x: hashX - 48, y: hashY }, curve: 22, text: '初始化频次 1' }] : [],
+        arrows: current && arrowStart && arrowTarget ? [{ id: `flow-${steps.length}-${current.id}-${arrowTargetNode?.id}`, kind: 'data-flow', route: 'rounded-elbow', from: arrowStart, to: arrowTarget, text: operation === 'lookup' ? `查找 ${targetPrefix}` : `记录 ${variables.sum}` }] : [],
         ranges: ranges.map((range) => ({ ...range })),
         candidate,
         result,

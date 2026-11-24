@@ -69,10 +69,24 @@ test('E2E-006: step snapshots synchronize narration, code anchors and one curren
   await expect(page.locator('[data-status="current"]')).toHaveCount(1);
   await expect(page.locator('.code-line.active').first()).toBeVisible();
   await expect(page.locator('.layer-legend .legend-item')).toHaveCount(5);
+  await page.getByRole('button', { name: /Prefix sums|前缀和 O/i }).click();
+  for (let index = 0; index < 11; index++) await page.getByRole('button', { name: /Next →|下一步 →/ }).click();
+  await expect(page.locator('[data-status="compare"]')).toHaveCount(2);
+  await expect(page.locator('[data-status="current"]')).toHaveCount(0);
   await page.getByRole('button', { name: /Hash map|哈希表/i }).click();
   for (let index = 0; index < 3; index++) await page.getByRole('button', { name: /Next →|下一步 →/ }).click();
   await expect(page.locator('.operation-badge')).toContainText(/Lookup|查询/i);
-  await expect(page.locator('.flow-arrow').first()).toHaveAttribute('d', /Q/);
+  const arrayNode = page.locator('[data-node-id="array-0"]');
+  const hashNode = page.locator('[data-node-id="hash--2"]');
+  const [arrayBox, hashBox] = await Promise.all([arrayNode.boundingBox(), hashNode.boundingBox()]);
+  expect(hashBox.y - (arrayBox.y + arrayBox.height)).toBeGreaterThan(0);
+  expect(Math.abs(hashBox.x + hashBox.width / 2 - (arrayBox.x + arrayBox.width / 2))).toBeLessThan(300);
+  expect(arrayBox.x).toBeGreaterThan(80);
+  const arrow = page.locator('.flow-arrow').first();
+  const path = await arrow.getAttribute('d');
+  expect(path).toContain('Q');
+  expect(path).toContain('L');
+  await expect(page.locator('.flow-arrow').first()).toHaveAttribute('data-route', 'rounded-elbow');
   await expect(page.locator('.focus-arrow').first()).toContainText(/查找|Lookup/i);
 });
 

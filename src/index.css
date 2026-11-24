@@ -63,15 +63,13 @@ button:focus-visible, a:focus-visible, [role='slider']:focus-visible { outline: 
 .canvas-heading { display: flex; height: 30px; flex: 0 0 30px; align-items: center; gap: 12px; padding: 0 8px; border-bottom: 1px solid #d8e2dc; background: #edf2ee; color: #253930; font-size: 11px; }
 .canvas-heading span:first-of-type { margin-left: auto; }
 .canvas-heading span { color: #53685d; }
-.algorithm-svg { display: block; width: 100%; min-height: 0; flex: 1 1 auto; background: #edf2ee; }
+.algorithm-svg { display: block; width: 100%; height: 100%; min-height: 0; flex: 1 1 auto; background: #edf2ee; }
 .canvas-legend-svg { pointer-events: none; }
 .canvas-legend-svg .legend-item text { paint-order: stroke; stroke: #edf2ee; stroke-width: 3px; stroke-linejoin: round; }
-.canvas-node rect { transition: filter 280ms cubic-bezier(.22,.8,.24,1); }
-.canvas-node[data-status='current'] rect { filter: drop-shadow(0 5px 8px rgb(27 118 90 / .2)); }
-.canvas-node[data-status='done'] rect { filter: drop-shadow(0 3px 5px rgb(15 79 61 / .14)); }
-.flow-arrow { stroke-linecap: round; stroke-linejoin: round; }
-.focus-arrow { paint-order: stroke; stroke: #edf2ee; stroke-width: 5px; stroke-linejoin: round; font-size: 11px; font-weight: 700; }
-.arrow-label-backplate { filter: drop-shadow(0 2px 3px rgb(20 40 30 / .08)); }
+.canvas-node rect { shape-rendering: geometricPrecision; }
+.flow-arrow { stroke-linecap: butt; stroke-linejoin: round; }
+.focus-arrow { paint-order: stroke; stroke: #edf2ee; stroke-width: 4px; stroke-linejoin: round; font-size: 11px; font-weight: 600; }
+.flow-arrow path, .flow-arrow { stroke-linejoin: round; }
 .structure-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); clip-path: inset(50%); white-space: nowrap; }
 .code-line code { white-space: pre-wrap; overflow-wrap: anywhere; }
 .node-label { font-size: 12px; font-weight: 600; }
@@ -81,8 +79,9 @@ button:focus-visible, a:focus-visible, [role='slider']:focus-visible { outline: 
 .lesson-heading { display: flex; align-items: center; gap: 8px; }
 .lesson-heading small, .canvas-metrics small { color: var(--ink-soft); font-size: 10px; }
 .lesson-heading h2 { margin: 2px 0 0; font-size: 12px; }
-.operation-badge { padding: 3px 6px; border: 1px solid #4d9878; border-radius: 4px; color: #9cdfbc; text-transform: uppercase; font-size: 9px; }
+.operation-badge { width: max-content; padding: 2px 5px; border: 1px solid #4d9878; border-radius: 4px; color: #9cdfbc; text-transform: uppercase; font-size: 9px; }
 .step-narration { grid-column: 1 / -1; margin: 0; line-height: 1.4; }
+.step-title-label { grid-column: 1 / -1; color: #9cdfbc; font-size: 11px; font-weight: 600; }
 .variable-list { display: flex; gap: 8px; margin: 0; }
 .variable-list div { display: flex; gap: 4px; }
 .variable-list dt { color: var(--ink-soft); }.variable-list dd { margin: 0; font-family: 'SF Mono', Consolas, monospace; }
@@ -116,4 +115,4 @@ button:focus-visible, a:focus-visible, [role='slider']:focus-visible { outline: 
 .community-float:hover .community-card, .community-float:focus-within .community-card { display: block; }
 @media (max-width: 1099px) { .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) clamp(180px, 22vh, 240px); }.code-panel { min-height: 0; }.app-container { grid-template-rows: 48px 42px 36px minmax(0, 1fr) 52px; } }
 @media (max-width: 800px) { .app-container { grid-template-rows: 48px 42px 36px minmax(0, 1fr) 72px; }.workspace { grid-template-rows: minmax(0, 1fr); }.code-panel { display: none; }.algorithm-tabs button { padding: 5px 4px; font-size: 9px; }.control-bar { gap: 5px; padding-inline: 6px; }.control-bar button { padding: 5px; font-size: 10px; }.input-entry { gap: 5px; padding-inline: 6px; }.input-entry input { width: 34vw; }.header-right { gap: 4px; }.header-right .github-link { font-size: 0; }.header-right .star-count { font-size: 10px; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }

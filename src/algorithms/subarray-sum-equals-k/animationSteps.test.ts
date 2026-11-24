@@ -43,25 +43,38 @@ describe('buildAlgorithmSteps', () => {
     expect(steps.filter((step) => step.operation === 'lookup').every((step) => step.frame.arrows.some((arrow) => arrow.text.startsWith('查找')))).toBe(true);
   });
 
-  it('centers the input structure and keeps array and hash nodes from overlapping', () => {
+  it('uses distinct horizontal lanes for the array and hash structure', () => {
     const steps = buildAlgorithmSteps('hash-map', [1, -1, 2, 0, 3, -2, 4, 1], 2);
     steps.forEach((step) => {
       const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
       const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
       const arrayCenter = (Math.min(...arrayNodes.map((node) => node.x)) + Math.max(...arrayNodes.map((node) => node.x))) / 2;
-      expect(arrayCenter).toBe(350);
-      expect(arrayNodes.every((node) => node.y === 270)).toBe(true);
-      expect(hashNodes.every((node) => node.y >= 270)).toBe(true);
-      expect(Math.min(...hashNodes.map((node) => node.x))).toBeGreaterThan(Math.max(...arrayNodes.map((node) => node.x)) + 80);
-      const allNodes = [...arrayNodes, ...hashNodes];
-      allNodes.forEach((node, index) => allNodes.slice(index + 1).forEach((other) => {
-        const nodeWidth = node.id.startsWith('hash-') ? 84 : 72;
-        const otherWidth = other.id.startsWith('hash-') ? 84 : 72;
+      expect(arrayCenter).toBe(600);
+      expect(arrayNodes.every((node) => node.y === 250 && node.width === 72 && node.height === 48)).toBe(true);
+      expect(hashNodes.every((node) => node.y >= 412 && node.width === 84 && node.height === 48)).toBe(true);
+      expect(Math.max(...arrayNodes.map((node) => node.y + (node.height ?? 48) / 2))).toBeLessThan(
+        Math.min(...hashNodes.map((node) => node.y - (node.height ?? 48) / 2)),
+      );
+      const mainNodes = step.frame.nodes.filter((node) => !node.id.startsWith('hash-'));
+      mainNodes.forEach((node, index) => mainNodes.slice(index + 1).forEach((other) => {
+        const nodeWidth = node.width ?? 72;
+        const otherWidth = other.width ?? 72;
         const separatedHorizontally = Math.abs(node.x - other.x) >= (nodeWidth + otherWidth) / 2 + 8;
         const separatedVertically = Math.abs(node.y - other.y) >= 56;
         expect(separatedHorizontally || separatedVertically).toBe(true);
       }));
-      expect(step.frame.arrows.every((arrow) => arrow.text.trim().length > 0)).toBe(true);
+      step.frame.arrows.forEach((arrow) => {
+        const source = step.frame.nodes.find((node) => node.id === `array-${step.binding.variables.index}`);
+        expect(arrow.text.trim().length).toBeGreaterThan(0);
+        expect(arrow.kind).toBe('data-flow');
+        expect(source).toBeDefined();
+        const target = step.frame.nodes.find((node) => node.id === `hash-${step.binding.variables.target ?? step.binding.variables.sum}`);
+        expect(arrow.from.y).toBe((source?.y ?? 0) + 32);
+        expect(target).toBeDefined();
+        expect(arrow.to.x).toBeCloseTo(target?.x ?? 0, 5);
+        expect(arrow.to.y).toBe((target?.y ?? 0) - 32);
+        expect(arrow.from.y).toBeLessThan(arrow.to.y);
+      });
     });
   });
 
@@ -69,9 +82,11 @@ describe('buildAlgorithmSteps', () => {
     (['brute-force', 'prefix-sum', 'hash-map'] as const).forEach((algorithm) => {
       const steps = buildAlgorithmSteps(algorithm, Array(8).fill(1), 2);
       steps.forEach((step) => step.frame.nodes.forEach((node) => {
-        const width = node.id.startsWith('hash-') ? 84 : node.id.startsWith('prefix-') ? 92 : 72;
+        const width = node.width ?? (node.id.startsWith('hash-') ? 84 : node.id.startsWith('prefix-') ? 92 : 72);
         expect(node.x - width / 2).toBeGreaterThanOrEqual(0);
         expect(node.x + width / 2).toBeLessThanOrEqual(1200);
+        expect(node.y).toBeGreaterThanOrEqual(0);
+        expect(node.y).toBeLessThanOrEqual(720);
       }));
     });
   });
@@ -94,6 +109,29 @@ describe('buildAlgorithmSteps', () => {
     ]);
   });
 
+  it('shows hash values in a compact, centered four-column grid with a reserved empty slot', () => {
+    const steps = buildAlgorithmSteps('hash-map', [1, 2, 3, 4, 5, 6, 7, 8], 99);
+    steps.forEach((step) => {
+      const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
+      hashNodes.forEach((node) => {
+        expect(node.x).toBeGreaterThanOrEqual(376);
+        expect(node.x).toBeLessThanOrEqual(824);
+        expect(node.y).toBeGreaterThanOrEqual(412);
+        expect(node.y).toBeLessThanOrEqual(628);
+      });
+    });
+  });
+
+  it('clips lookup flow to the target hash node boundary', () => {
+    const steps = buildAlgorithmSteps('hash-map', [1, 2, 3], 3);
+    const lookup = steps.find((step) => step.operation === 'lookup' && step.binding.variables.index === 1)!;
+    const target = lookup.frame.nodes.find((node) => node.id === 'hash-0')!;
+    const source = lookup.frame.nodes.find((node) => node.id === 'array-1')!;
+    const arrow = lookup.frame.arrows[0];
+    expect(arrow.from).toEqual({ x: source.x, y: source.y + 32 });
+    expect(arrow.to).toEqual({ x: target.x, y: target.y - 32 });
+  });
+
   it('separates hash lookup from insertion and records correct matching ranges', () => {
     const steps = buildAlgorithmSteps('hash-map', [1, -1, 2], 2);
     const operations = steps.map((step) => step.operation);
@@ -102,7 +140,8 @@ describe('buildAlgorithmSteps', () => {
     expect(operations).toContain('insert');
     const misses = steps.filter((step) => step.operation === 'compare' && step.binding.variables.matches === 0);
     expect(misses.every((step) => step.frame.nodes.some((node) => node.id === `hash-${step.binding.variables.target}` && node.status === 'idle'))).toBe(true);
-    expect(steps[0].frame.arrows[0].text).toContain('初始化');
+    expect(steps[0].frame.nodes.some((node) => node.id === 'hash-0' && node.label === '0 × 1')).toBe(true);
+    expect(steps[0].frame.arrows).toHaveLength(0);
     expect(steps.filter((step) => step.operation === 'read' && step.binding.variables.result !== undefined).flatMap((step) => step.frame.ranges))
       .toEqual(expect.arrayContaining([{ start: 0, end: 2, sum: 2 }]));
     steps.forEach((step) => {
@@ -137,6 +176,9 @@ describe('buildAlgorithmSteps', () => {
     expect(prefixBuilds.map((step) => step.binding.variables.nextPrefix)).toEqual([1, 3, 2]);
     expect(prefixBuilds.map((step) => step.frame.nodes.filter((node) => node.id.startsWith('prefix-')).length)).toEqual([2, 3, 4]);
     expect(steps.filter((step) => step.operation === 'compare')).toHaveLength(6);
+    const comparison = steps.find((step) => step.operation === 'compare')!;
+    expect(comparison.frame.nodes.filter((node) => node.status === 'compare' && node.id.startsWith('prefix-')).map((node) => node.id)).toEqual(['prefix-0', 'prefix-1']);
+    expect(comparison.frame.nodes.filter((node) => node.status === 'current')).toHaveLength(0);
   });
 
   it('adds inspection, accumulation, comparison and answer frames for brute force', () => {
@@ -169,7 +211,7 @@ describe('buildAlgorithmSteps', () => {
     const steps = buildAlgorithmSteps('hash-map', [1, -1, 2], 2);
     const lookupArrows = steps.filter((step) => step.operation === 'lookup').flatMap((step) => step.frame.arrows);
     expect(lookupArrows.length).toBeGreaterThan(0);
-    expect(lookupArrows.every((arrow) => arrow.curve !== undefined && arrow.curve < 0)).toBe(true);
+    expect(lookupArrows.every((arrow) => arrow.route === 'rounded-elbow' && arrow.kind === 'data-flow' && arrow.curve === undefined)).toBe(true);
   });
 
   it('keeps array node positions and identities stable across snapshots', () => {
