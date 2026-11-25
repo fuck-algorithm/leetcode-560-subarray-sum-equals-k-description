@@ -8,7 +8,7 @@ describe('arrow geometry', () => {
 
   it('routes lookup arrows from source bottom to target top with rounded corners', () => {
     const path = arrowPath({ from: { x: 100, y: 200 }, to: { x: 400, y: 380 }, route: 'rounded-elbow' });
-    expect(path.match(/ C/g)).toHaveLength(2);
+    expect(path.match(/ C/g)).toHaveLength(3);
     expect(path).toContain('L');
     expect(path.startsWith('M100,200')).toBe(true);
     expect(path.endsWith('L400,380')).toBe(true);

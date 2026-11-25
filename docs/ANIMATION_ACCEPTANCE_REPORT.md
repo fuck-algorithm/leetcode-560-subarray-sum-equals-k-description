@@ -41,10 +41,9 @@
 
 - 哈希查询流向使用明确的圆角正交路径，数据记录标签放在水平通道上方；路径端点根据源、目标稳定 ID 在 DOM 更新时从矩形边缘重算，避免旧帧坐标漂移。
 - 画布移除缩放、弹性、阴影、描线等装饰运动；焦点按状态立即更新，教学标题与 operation 徽标分离，reduced-motion 保留完整解说、焦点和代码联动。
-- 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 77 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS（Webpack 有过期 Browserslist 与 bundle size 警告）；`npm run qa:repo` PASS；`npm run test:e2e` PASS（22/22）；`git diff --check` PASS。坐标重构于 2026-11-25 完成本地验收，当前工作树改动尚未推送部署。
+- 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 77 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS（Webpack 有过期 Browserslist 与 bundle size 警告）；`npm run qa:repo` PASS；`npm run test:e2e` PASS（22/22）；`git diff --check` PASS。旧坐标初版于 2026-11-25 完成本地验收；当前箭头审查改版尚未推送部署。
 - `npm run test:coverage`：PASS，Jest 当前 lines 80.2%、functions 76%、branches 73.85%；Vitest 对 `validateInput` 的 lines/functions/branches 均为 100%。统计范围分别在 `jest.config.js` 与 `vitest.config.ts` 明确列出。
 - 本轮统一数据坐标：数组行 y=250，哈希槽由 y=412 起按三列固定槽排布，最多八种前缀值可见；数组和前缀边界分别居中。viewBox 按可视区比例扩展并首帧 fit；用户缩放/平移后 resize 不再重置镜头。箭头由稳定 nodeId 对定义，当前帧 renderer 重新计算真实矩形边缘端点；共享 route geometry 同时为 SVG path 和标签计算弧长位置。初始化哨兵 `0 × 1` 直接显示。
-- 移除缩放淡入、弹性和描线等装饰动效；每步即时呈现静态快照，降低阅读时的运动干扰。reduced-motion 保留完整信息。
 - 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 75 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS；`npm run qa:repo` PASS；`npm run test:e2e` PASS（21/21）；`git diff --check` PASS。双视口截图、快速跳步截图与代码均在本地工作区，坐标重构尚未推送部署。
 
 ## B1–B7
