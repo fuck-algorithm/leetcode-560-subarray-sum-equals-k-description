@@ -8,7 +8,7 @@ test('motion: hash lookup uses a curved path and playback advances semantic fram
   await page.goto('/');
   await page.getByRole('button', { name: /Hash map|哈希表/i }).click();
   for (let index = 0; index < 3; index++) await page.getByRole('button', { name: /Next →|下一步 →/ }).click();
-  await expect(page.locator('.operation-badge')).toContainText(/Lookup|查询/i);
+  await expect(page.locator('.canvas-operation .operation-badge')).toContainText(/lookup|查询/i);
   const arrayNode = page.locator('[data-node-id="array-0"]');
   const hashNode = page.locator('[data-node-id="hash--2"]');
   const [arrayBox, hashBox] = await Promise.all([arrayNode.boundingBox(), hashNode.boundingBox()]);
@@ -16,7 +16,7 @@ test('motion: hash lookup uses a curved path and playback advances semantic fram
   const arrowNode = page.locator('.flow-arrow').first();
   await expect(arrowNode).toHaveAttribute('data-route', 'rounded-elbow');
   const arrowPath = await arrowNode.getAttribute('d');
-  expect(arrowPath).toContain('Q');
+  expect(arrowPath).toContain('C');
   expect(arrowPath).toContain('L');
   await page.waitForTimeout(100);
   await page.screenshot({ path: testInfo.outputPath('lookup-curve.png') });
@@ -31,7 +31,7 @@ test('motion: hash lookup uses a curved path and playback advances semantic fram
   const counter = page.locator('.step-counter');
   await page.getByRole('button', { name: /Next →|下一步 →/ }).click();
   await expect(counter).toContainText('2 /');
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(500);
   await page.screenshot({ path: testInfo.outputPath('playback-3x.png') });
 });
 
@@ -46,6 +46,21 @@ test('motion: reduced motion keeps narration, focus and code binding without tra
   await expect(page.locator('.code-line.active').first()).toBeVisible();
   expect(await page.locator('.canvas-node rect').first().evaluate((node) => getComputedStyle(node).transitionDuration)).toBe('0s');
   await page.screenshot({ path: testInfo.outputPath('reduced-motion.png') });
+});
+
+test('motion: resizing preserves the user camera after initial fit', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/');
+  const svg = page.locator('.algorithm-svg');
+  const layer = page.locator('.zoom-layer');
+  const box = await svg.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 38, box.y + box.height / 2 + 22);
+  await page.mouse.up();
+  const manualTransform = await layer.getAttribute('transform');
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await expect.poll(() => layer.getAttribute('transform')).toBe(manualTransform);
 });
 
 test('motion: seeking ten times never duplicates SVG marks or loses focus', async ({ page }, testInfo) => {

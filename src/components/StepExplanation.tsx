@@ -14,7 +14,7 @@ export const StepExplanation: React.FC<Props> = ({ step, current, total, algorit
     <header className="lesson-heading">
       <div>
         <small>{algorithmName} · {current + 1} / {total}</small>
-        <h2>{step.title}</h2>
+        <h2>{step.operation === 'lookup' ? '查找目标前缀和' : step.operation === 'compare' ? '确认未命中' : step.operation === 'insert' ? '记录当前前缀和' : step.operation === 'match' ? '匹配子数组' : step.operation === 'read' ? '读取并更新前缀和' : step.operation === 'inspect' ? '读取当前数组值' : step.operation === 'done' ? '扫描完成' : step.title}</h2>
       </div>
     </header>
     <strong className="step-title-label">{step.title}</strong>

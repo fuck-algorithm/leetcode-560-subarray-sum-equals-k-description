@@ -1,4 +1,4 @@
-import { arrowPath, arrowPoint, verticalNodeEdge } from './arrowGeometry';
+import { arrowPath, arrowPoint, routeBetweenNodes, verticalNodeEdge } from './arrowGeometry';
 
 describe('arrow geometry', () => {
   it('uses a straight line unless a curve route is explicitly requested', () => {
@@ -8,8 +8,8 @@ describe('arrow geometry', () => {
 
   it('routes lookup arrows from source bottom to target top with rounded corners', () => {
     const path = arrowPath({ from: { x: 100, y: 200 }, to: { x: 400, y: 380 }, route: 'rounded-elbow' });
-    expect(path).toContain('C');
-    expect(path).toContain('Q');
+    expect(path.match(/ C/g)).toHaveLength(2);
+    expect(path).toContain('L');
     expect(path.startsWith('M100,200')).toBe(true);
     expect(path.endsWith('L400,380')).toBe(true);
   });
@@ -18,6 +18,20 @@ describe('arrow geometry', () => {
     const middle = arrowPoint({ from: { x: 0, y: 0 }, to: { x: 100, y: 0 }, curve: 20, route: 'curve' });
     expect(middle.x).toBe(50);
     expect(middle.y).toBe(10);
+  });
+
+  it('resolves both endpoints from stable node IDs in the current frame', () => {
+    const nodes = new Map([
+      ['array-0', { x: 100, y: 100, width: 72, height: 48 }],
+      ['hash--2', { x: 200, y: 426, width: 84, height: 48 }],
+    ]);
+    expect(routeBetweenNodes({ fromId: 'array-0', toId: 'hash--2', route: 'rounded-elbow' }, nodes)).toEqual({
+      from: { x: 100, y: 124 },
+      to: { x: 200, y: 402 },
+      route: 'rounded-elbow',
+      curve: undefined,
+    });
+    expect(routeBetweenNodes({ fromId: 'array-missing', toId: 'hash--2' }, nodes)).toBeUndefined();
   });
 
   it('anchors vertical data-flow arrows outside node edges', () => {

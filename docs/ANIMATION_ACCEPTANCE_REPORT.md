@@ -32,18 +32,18 @@
 
 ## 本轮坐标与教学优先调整（2026-11-25）
 
-- 本轮以算法可读性优先：移除所有入场、弹性、描线和阴影动效；切步只渲染确定性快照。
-- 坐标统一到 1200×720，数组沿中心主轴、前缀边界独立居中、哈希频次固定四列辅助泳道；viewBox 随容器宽高比扩展，防止主内容缩成小团。
-- 查询箭头按数组/哈希矩形外沿计算起终点，走专用圆角折线通道，标签位于通道上方；哨兵直接显示 `0 × 1`。前缀比较帧只高亮两个边界，不重复高亮数组元素。
-- 最终证据：E2E 21/21；Jest 75/75、Vitest 9/9；type-check/build PASS，lint 0 errors（4 条既存 warning）。双视口和三种解法首末帧截图已更新；坐标版尚未推送。
+- 本轮以算法可读性优先：画布不播放装饰性进入/弹性/描线/阴影动效；切步静态渲染确定性快照。箭头语义文本统一按界面语言本地化。
+- 坐标统一到 1200×720，数组沿中心主轴，前缀边界独立居中；哈希表改为最多 8 个不同前缀值可见的三列辅助网格。自适应 viewBox 扩展窄屏坐标域，首次打开 fit 镜头，后续 resize 保留用户平移/缩放。
+- 所有箭头在当前唯一查找/写入路径上关联 `fromId/toId`；renderer 从当前帧节点矩形边缘重新求端点。path 与弧长标签锚点由共享 route geometry 计算；暴力/前缀解法不再画语义错误的哈希箭头，前缀比较只聚焦两个边界。
+- 最终证据：E2E 22/22（17 个基础用例 + 5 个坐标/相机专项）；Jest 77/77、Vitest 9/9；type-check/build PASS；lint 0 errors（4 条既存 warning）。双视口布局、同一路径标签锚点及 resize 后相机留存均有 E2E/截图证据；本轮代码尚未推送。
 
 ## 之前的动效细化（2026-11-24）
 
-- 哈希查询流向改为基于统一数据坐标的圆角折线路由：从数组节点外沿垂直离开，通过独立水平通道，落到目标哈希卡片边缘；标签位于连线通道，不压节点。
-- 移除进入/退出缩放、弹性、阴影及箭头描线等装饰动画；节点和答案范围按稳定 ID 静态更新，reduced-motion 仍保留完整解说、焦点和代码联动。
-- 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 75 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS（Webpack 有过期 Browserslist 与 bundle size 警告）；`npm run qa:repo` PASS；`npm run test:e2e` PASS（21/21）；`git diff --check` PASS。坐标重构于 2026-11-25 完成本地验收，当前工作树改动尚未推送部署。
-- `npm run test:coverage`：PASS；Jest 对算法及指定产品工具模块实测 lines 100%、functions 80%、branches 77.31%；Vitest 对 `validateInput` 的 lines/functions/branches 均为 100%。统计范围分别在 `jest.config.js` 与 `vitest.config.ts` 明确列出。
-- 本轮统一数据坐标：数组行 y=250，哈希槽由 y=412 起按四列固定槽排布；数组和前缀边界分别按当前数量居中，稳定节点不相互重叠。viewBox 按可视区比例扩展，并以主数据和哈希泳道为主体居中显示。查询箭头从源节点下边缘经圆角折线通道到目标哈希卡上边缘；哨兵 `0 × 1` 直接显示，不画装饰箭头。
+- 哈希查询流向使用明确的圆角正交路径，数据记录标签放在水平通道上方；路径端点根据源、目标稳定 ID 在 DOM 更新时从矩形边缘重算，避免旧帧坐标漂移。
+- 画布移除缩放、弹性、阴影、描线等装饰运动；焦点按状态立即更新，教学标题与 operation 徽标分离，reduced-motion 保留完整解说、焦点和代码联动。
+- 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 77 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS（Webpack 有过期 Browserslist 与 bundle size 警告）；`npm run qa:repo` PASS；`npm run test:e2e` PASS（22/22）；`git diff --check` PASS。坐标重构于 2026-11-25 完成本地验收，当前工作树改动尚未推送部署。
+- `npm run test:coverage`：PASS，Jest 当前 lines 80.2%、functions 76%、branches 73.85%；Vitest 对 `validateInput` 的 lines/functions/branches 均为 100%。统计范围分别在 `jest.config.js` 与 `vitest.config.ts` 明确列出。
+- 本轮统一数据坐标：数组行 y=250，哈希槽由 y=412 起按三列固定槽排布，最多八种前缀值可见；数组和前缀边界分别居中。viewBox 按可视区比例扩展并首帧 fit；用户缩放/平移后 resize 不再重置镜头。箭头由稳定 nodeId 对定义，当前帧 renderer 重新计算真实矩形边缘端点；共享 route geometry 同时为 SVG path 和标签计算弧长位置。初始化哨兵 `0 × 1` 直接显示。
 - 移除缩放淡入、弹性和描线等装饰动效；每步即时呈现静态快照，降低阅读时的运动干扰。reduced-motion 保留完整信息。
 - 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 75 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS；`npm run qa:repo` PASS；`npm run test:e2e` PASS（21/21）；`git diff --check` PASS。双视口截图、快速跳步截图与代码均在本地工作区，坐标重构尚未推送部署。
 
@@ -51,11 +51,11 @@
 
 - B1：PASS。主路径无装饰性动画，数组/前缀/哈希槽采用固定坐标网格，数据流端点按矩形外沿和通道规则计算；10 次快速跳步无重复元素。
 - B2：PASS。type-check、lint、build、Jest coverage、Vitest unit coverage、Playwright E2E 均通过；lint 保留 4 条既存 any warning，构建保留 Browserslist / bundle size 警告。
-- B3：PASS。本轮 Playwright 21/21 通过。
+- B3：PASS。本轮 Playwright 22/22 通过。
 - B4：PASS。AC-001~AC-023 均逐项验证或有对应自动化及证据。
-- B5：PASS。完整 Playwright 21/21 通过，未发现 P0/P1。
-- B6：PASS。Rubric 九项按 0–5 评分：首屏信息架构 5/5、分镜清晰度 4/5、代码同步 5/5、画布信息密度 4/5、交互可控性 5/5、多解法可比性 5/5、稳定性 4/5、工程发布质量 4/5、文档完整性 3/5；按权重折算 89/100。
-- B7：PASS。命令输出、21 项 E2E、1x/3x 截图、双视口布局截图、reduced-motion 截图、10 次跳步测试及修复验证证据已保存到本地；视频录制不是本轮要求。
+- B5：PASS。完整 Playwright 22/22 通过，未发现 P0/P1。
+- B6：PASS。聚焦可视化结构重排后，正式 Rubric 未因本次改动重打分；复用前次 89/100 基线，当前画布主体与箭头评分证据仅作定性补充。
+- B7：PASS。命令输出、22 项 E2E、1x/3x 截图、双视口布局截图、reduced-motion 截图、10 次跳步截图及箭头坐标单测均已保存到本地；视频录制不是本轮要求。
 
 ## AC-001~AC-023 逐项结果
 
@@ -71,8 +71,8 @@ B6 权重折算：`(5/5×10)+(4/5×15)+(5/5×15)+(4/5×15)+(5/5×10)+(5/5×10)+(
 | AC-020 | PASS | 新增 `tests/unit/utils/validateInput.test.ts` 并由 Vitest 执行 |
 | AC-021 | PASS | 新增 `vitest.config.ts` 与 package scripts；Vitest 9 项测试通过、目标覆盖率 100% |
 | AC-022 | PASS | 提取并复用 `validateInput` 纯函数；Vitest 覆盖合法输入及非法/越界输入 |
-| AC-023 | PASS | 静态语义帧、稳定 keyed join、节点边界端点及路由、reduced-motion 信息保持、快跳无残留均有单测/E2E 与双视口截图 |
+| AC-023 | PASS | 静态语义帧、稳定 keyed join、箭头 node-ID 端点与通道几何、步骤说明标签层级、reduced-motion 与快跳无残留均有单测/E2E |
 
 ## 结论
 
-**本地 PASS**。AC-001~AC-023 有本地自动化或对应证据；2026-11-25 坐标改版的本地 21 项 E2E、单测、类型、lint、build 均通过。该坐标改版尚未推送，不能声称已部署；线上仍为此前 Actions run `45254619548` 生成的 bundle。
+**本地 PASS**。AC-001~AC-023 有本地自动化或对应证据；2026-11-26 坐标与箭头审查版本地 22 项 E2E、Jest 76 项、Vitest 9 项、类型、lint、build 均通过。该版尚未推送，不能声称已部署；线上仍为此前 Actions run `45254619548` 生成的 bundle。

@@ -1,5 +1,6 @@
 import { buildAlgorithmSteps } from './animationSteps';
 import { motionDuration } from '@/utils/motion';
+import { routeBetweenNodes } from '@/utils/arrowGeometry';
 
 describe('buildAlgorithmSteps', () => {
   it('provides an English snapshot and narration for every solution', () => {
@@ -69,10 +70,10 @@ describe('buildAlgorithmSteps', () => {
         expect(arrow.kind).toBe('data-flow');
         expect(source).toBeDefined();
         const target = step.frame.nodes.find((node) => node.id === `hash-${step.binding.variables.target ?? step.binding.variables.sum}`);
-        expect(arrow.from.y).toBe((source?.y ?? 0) + 32);
+        expect(arrow.from.y).toBe(source!.y + source!.height! / 2);
         expect(target).toBeDefined();
         expect(arrow.to.x).toBeCloseTo(target?.x ?? 0, 5);
-        expect(arrow.to.y).toBe((target?.y ?? 0) - 32);
+        expect(arrow.to.y).toBe(target!.y - target!.height! / 2);
         expect(arrow.from.y).toBeLessThan(arrow.to.y);
       });
     });
@@ -109,7 +110,7 @@ describe('buildAlgorithmSteps', () => {
     ]);
   });
 
-  it('shows hash values in a compact, centered four-column grid with a reserved empty slot', () => {
+  it('shows hash values in a compact, centered three-column grid with stable slots', () => {
     const steps = buildAlgorithmSteps('hash-map', [1, 2, 3, 4, 5, 6, 7, 8], 99);
     steps.forEach((step) => {
       const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
@@ -117,7 +118,7 @@ describe('buildAlgorithmSteps', () => {
         expect(node.x).toBeGreaterThanOrEqual(376);
         expect(node.x).toBeLessThanOrEqual(824);
         expect(node.y).toBeGreaterThanOrEqual(412);
-        expect(node.y).toBeLessThanOrEqual(628);
+        expect(node.y).toBeLessThanOrEqual(736);
       });
     });
   });
@@ -128,8 +129,20 @@ describe('buildAlgorithmSteps', () => {
     const target = lookup.frame.nodes.find((node) => node.id === 'hash-0')!;
     const source = lookup.frame.nodes.find((node) => node.id === 'array-1')!;
     const arrow = lookup.frame.arrows[0];
-    expect(arrow.from).toEqual({ x: source.x, y: source.y + 32 });
-    expect(arrow.to).toEqual({ x: target.x, y: target.y - 32 });
+    expect(routeBetweenNodes(arrow, new Map(lookup.frame.nodes.map((node) => [node.id, { x: node.x, y: node.y, width: node.width!, height: node.height! }])))).toEqual({
+      from: { x: source.x, y: source.y + 24 },
+      to: { x: target.x, y: target.y - 24 },
+      route: 'rounded-elbow',
+      curve: undefined,
+    });
+  });
+
+  it('uses a stable idle sentinel node for every hash frame before reads', () => {
+    const steps = buildAlgorithmSteps('hash-map', [2], 9);
+    steps.filter((step) => step.id <= 2).forEach((step) => {
+      expect(step.frame.nodes.some((node) => node.id === 'hash-0' && node.label === '0 × 1')).toBe(true);
+      expect(step.frame.nodes.find((node) => node.id === 'hash-0')?.x).toBe(488);
+    });
   });
 
   it('separates hash lookup from insertion and records correct matching ranges', () => {

@@ -145,6 +145,7 @@ const App: React.FC = () => {
       <article className="canvas-card">
         <div className="canvas-heading"><strong>{text.canvas}</strong><span data-testid="step-counter">{activeIndex + 1} / {steps.length}{currentStepUsesMatch ? ` · ${text.answer}` : ''}</span><span>{text.complexity}: {COMPLEXITY_INFO[currentAlgorithm].time} · {COMPLEXITY_INFO[currentAlgorithm].space}</span></div>
         <AlgorithmCanvas step={step} reducedMotion={reducedMotion} speed={playbackSpeed} />
+        <div className="canvas-operation" aria-hidden="true"><strong>{step.operation === 'lookup' ? '查找目标前缀和' : step.operation === 'compare' ? '确认未命中' : step.operation === 'insert' ? '记录当前前缀和' : step.operation === 'match' ? '匹配子数组' : step.operation === 'read' ? '读取并更新前缀和' : step.operation === 'inspect' ? '读取当前数组值' : step.operation === 'done' ? '扫描完成' : step.title}</strong><span className="operation-badge" data-operation={step.operation}>{step.operation}</span></div>
         <div className="structure-status" aria-live="polite">{locale === 'en' ? `${currentArrayCount} current array focus${currentArrayCount === 1 ? '' : 'es'}` : `数组当前焦点：${currentArrayCount}`}</div>
         <StepExplanation step={step} current={activeIndex} total={steps.length} algorithmName={name[currentAlgorithm]} labels={watchLabels} />
       </article>

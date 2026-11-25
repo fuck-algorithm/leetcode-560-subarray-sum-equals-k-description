@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { AlgorithmStep, StepNode } from '@/algorithms/subarray-sum-equals-k/animationSteps';
-import { arrowPath, arrowPoint } from '@/utils/arrowGeometry';
+import { arrowPath, arrowPoint, routeBetweenNodes } from '@/utils/arrowGeometry';
 
 interface Props {
   step: AlgorithmStep;
@@ -10,9 +10,7 @@ interface Props {
 }
 
 const nodeWidth = (node: StepNode) => node.width ?? (node.id.startsWith('hash-') ? 84 : node.id.startsWith('prefix-') ? 92 : 72);
-const arrowLabelPoint = (arrow: AlgorithmStep['frame']['arrows'][number]) => arrow.route === 'rounded-elbow'
-  ? { x: (arrow.from.x + arrow.to.x) / 2, y: arrow.to.y - 18 }
-  : arrowPoint(arrow, 0.5);
+const arrowLabelPoint = (arrow: { from: { x: number; y: number }; to: { x: number; y: number }; route?: 'rounded-elbow' | 'straight' | 'curve'; curve?: number }) => arrowPoint(arrow, 0.5);
 const algorithmLabel = (step: AlgorithmStep): { id: string; text: string; x: number; y: number }[] => {
   const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
   const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
@@ -62,6 +60,7 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step }) => {
       .scaleExtent([0.75, 2])
       .on('zoom', (event) => root.attr('transform', event.transform.toString()));
     svg.call(zoom).on('dblclick.zoom', null);
+    let cameraInitialized = false;
     const updateViewBox = () => {
       const width = svgElement.clientWidth;
       const height = svgElement.clientHeight;
@@ -69,12 +68,21 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step }) => {
       const aspect = width / height;
       const logicalWidth = Math.max(1200, 720 * aspect);
       const logicalHeight = Math.max(720, 1200 / aspect);
-      svg.attr('viewBox', `${(1200 - logicalWidth) / 2} ${(720 - logicalHeight) / 2} ${logicalWidth} ${logicalHeight}`);
+      const minX = (1200 - logicalWidth) / 2;
+      const minY = (720 - logicalHeight) / 2;
+      svg.attr('viewBox', `${minX} ${minY} ${logicalWidth} ${logicalHeight}`);
+      if (!cameraInitialized) {
+        const scale = Math.min(logicalWidth / 1200, 1.25);
+        const translateX = (logicalWidth - 1200 * scale) / 2;
+        const translateY = 52 - minY * scale;
+        svg.call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale));
+        cameraInitialized = true;
+      }
+      root.select('.layer-legend').attr('transform', `translate(${minX},${minY})`);
     };
     const observer = new ResizeObserver(updateViewBox);
     observer.observe(svgElement);
     updateViewBox();
-    requestAnimationFrame(() => svg.call(zoom.transform, d3.zoomIdentity.translate(-120, -72).scale(1.2)));
     return () => observer.disconnect();
   }, []);
 
@@ -124,9 +132,15 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step }) => {
         (update) => update,
         (exit) => exit.remove(),
       );
+    const nodeBounds = new Map(step.frame.nodes.map((node) => [node.id, { x: node.x, y: node.y, width: nodeWidth(node), height: node.height ?? 48 }]));
+    const routedArrows = arrows.map((arrow) => ({ ...arrow, geometry: arrow.fromId && arrow.toId ? routeBetweenNodes({ fromId: arrow.fromId, toId: arrow.toId, route: arrow.route }, nodeBounds) : undefined }));
+    const routedArrowById = new Map(routedArrows.map((arrow) => [arrow.id, arrow]));
     arrowPaths.attr('data-arrow-id', (arrow) => arrow.id)
       .attr('data-route', (arrow) => arrow.route ?? 'straight')
-      .attr('d', arrowPath)
+      .attr('d', (arrow) => {
+        const routed = routedArrowById.get(arrow.id);
+        return arrowPath(routed?.geometry ?? arrow);
+      })
       .attr('stroke', '#258464')
       .attr('stroke-width', 2)
       .attr('marker-end', 'url(#arrow-tip)');
@@ -138,8 +152,8 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step }) => {
         (update) => update,
         (exit) => exit.remove(),
       );
-    arrowLabels.attr('x', (arrow) => arrowLabelPoint(arrow).x)
-      .attr('y', (arrow) => arrowLabelPoint(arrow).y - 8)
+    arrowLabels.attr('x', (arrow) => arrowLabelPoint(routedArrowById.get(arrow.id)?.geometry ?? arrow).x)
+      .attr('y', (arrow) => arrowLabelPoint(routedArrowById.get(arrow.id)?.geometry ?? arrow).y - 8)
       .attr('fill', '#17674e')
       .text((arrow) => arrow.text);
 

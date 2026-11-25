@@ -69,7 +69,7 @@ export interface AlgorithmStep {
   binding: { anchorIds: string[]; variables: Record<string, string | number> };
   frame: {
     nodes: StepNode[];
-    arrows: { id: string; from: { x: number; y: number }; to: { x: number; y: number }; text: string; kind?: 'data-flow'; route?: 'rounded-elbow' }[];
+    arrows: { id: string; fromId?: string; toId?: string; from: { x: number; y: number }; to: { x: number; y: number }; text: string; kind?: 'data-flow'; route?: 'rounded-elbow' }[];
     ranges: StepRange[];
     candidate?: StepRange;
     result: number;
@@ -142,7 +142,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
   const prefixY = 360;
   const hashX = 600;
   const hashY = 412;
-  const hashColumns = 4;
+  const hashColumns = 3;
   const arrayWidth = 72;
   const hashWidth = 84;
   const prefixWidth = 92;
@@ -205,8 +205,8 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
     const targetNode = algorithm === 'hash-map' && targetPrefix !== undefined ? nodes.find((node) => node.id === `hash-${targetPrefix}`) : undefined;
     const pendingHashNode = algorithm === 'hash-map' && operation === 'insert' ? nodes.find((node) => node.id === `hash-${variables.sum}`) : undefined;
     const arrowTargetNode = operation === 'lookup' ? targetNode : operation === 'insert' ? pendingHashNode : undefined;
-    const arrowStart = current && arrowTargetNode ? verticalNodeEdge({ x: current.x, y: current.y, width: current.width ?? arrayWidth, height: current.height ?? 48 }, 'bottom', 8) : undefined;
-    const arrowTarget = current && arrowTargetNode ? verticalNodeEdge({ x: arrowTargetNode.x, y: arrowTargetNode.y, width: arrowTargetNode.width ?? hashWidth, height: arrowTargetNode.height ?? 48 }, 'top', 8) : undefined;
+    const arrowStart = current && arrowTargetNode ? verticalNodeEdge({ x: current.x, y: current.y, width: current.width ?? arrayWidth, height: current.height ?? 48 }, 'bottom') : undefined;
+    const arrowTarget = current && arrowTargetNode ? verticalNodeEdge({ x: arrowTargetNode.x, y: arrowTargetNode.y, width: arrowTargetNode.width ?? hashWidth, height: arrowTargetNode.height ?? 48 }, 'top') : undefined;
     steps.push({
       id: steps.length,
       title: operationLabels[operation],
@@ -216,7 +216,7 @@ export function buildAlgorithmSteps(algorithm: AlgorithmType, nums: number[], k:
       binding: { anchorIds: [anchor], variables },
       frame: {
         nodes,
-        arrows: current && arrowStart && arrowTarget ? [{ id: `flow-${steps.length}-${current.id}-${arrowTargetNode?.id}`, kind: 'data-flow', route: 'rounded-elbow', from: arrowStart, to: arrowTarget, text: operation === 'lookup' ? `查找 ${targetPrefix}` : `记录 ${variables.sum}` }] : [],
+        arrows: current && arrowStart && arrowTarget ? [{ id: `flow-${steps.length}-${current.id}-${arrowTargetNode?.id}`, fromId: current.id, toId: arrowTargetNode!.id, kind: 'data-flow', route: 'rounded-elbow', from: arrowStart, to: arrowTarget, text: operation === 'lookup' ? `查找 ${targetPrefix}` : `记录 ${variables.sum}` }] : [],
         ranges: ranges.map((range) => ({ ...range })),
         candidate,
         result,
