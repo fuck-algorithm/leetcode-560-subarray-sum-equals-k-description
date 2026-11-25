@@ -1,6 +1,5 @@
 import type { AlgorithmType } from '@/types';
 import type { UiLocale } from '@/utils/productUi';
-import { verticalNodeEdge } from '@/utils/arrowGeometry';
 
 export type StepOperation = 'init' | 'inspect' | 'read' | 'compare' | 'lookup' | 'match' | 'insert' | 'done';
 export type NodeStatus = 'idle' | 'current' | 'compare' | 'visited' | 'done';
