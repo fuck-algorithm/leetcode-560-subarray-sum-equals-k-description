@@ -11,8 +11,8 @@ export interface ArrowRoute {
 }
 
 export interface ArrowGeometry {
-  from: Point;
-  to: Point;
+  from?: Point;
+  to?: Point;
   route?: 'rounded-elbow' | 'straight' | 'curve';
   curve?: number;
 }
@@ -47,7 +47,7 @@ interface Segment {
   control2?: Point;
 }
 
-function roundedElbowSegments({ from, to }: ArrowGeometry): Segment[] {
+function roundedElbowSegments(from: Point, to: Point): Segment[] {
   const bendY = Math.min(to.y - 12, from.y + 132);
   const radius = Math.min(12, Math.abs(to.x - from.x) / 3, Math.abs(to.y - bendY));
   const direction = Math.sign(to.x - from.x) || 1;
@@ -65,9 +65,11 @@ function roundedElbowSegments({ from, to }: ArrowGeometry): Segment[] {
   ];
 }
 
-export function arrowPath({ from, to, curve = 0, route }: ArrowGeometry): string {
+export function arrowPath(geometry: ArrowGeometry): string {
+  const { from, to, curve = 0, route } = geometry;
+  if (!from || !to) return '';
   if (route === 'rounded-elbow') {
-    return roundedElbowSegments({ from, to }).reduce((path, segment) => segment.control1 && segment.control2
+    return roundedElbowSegments(from, to).reduce((path, segment) => segment.control1 && segment.control2
       ? `${path} C${segment.control1.x},${segment.control1.y} ${segment.control2.x},${segment.control2.y} ${segment.to.x},${segment.to.y}`
       : `${path} L${segment.to.x},${segment.to.y}`, `M${from.x},${from.y}`);
   }
@@ -96,9 +98,10 @@ function segmentSamples(segment: Segment): Point[] {
 }
 
 export function arrowPoint(arrow: ArrowGeometry, t = 0.5): Point {
+  if (!arrow.from || !arrow.to) return { x: 0, y: 0 };
   const progress = Math.max(0, Math.min(1, t));
   if (arrow.route === 'rounded-elbow') {
-    const segments = roundedElbowSegments(arrow);
+    const segments = roundedElbowSegments(arrow.from, arrow.to);
     const samples = segments.map((segment) => {
       const points = segmentSamples(segment);
       const length = points.slice(1).reduce((sum, point, index) => sum + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0);

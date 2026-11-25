@@ -84,6 +84,8 @@ test('E2E-006: step snapshots synchronize narration, code anchors and one curren
   expect(arrayBox.x).toBeGreaterThan(80);
   const arrow = page.locator('.flow-arrow').first();
   const path = await arrow.getAttribute('d');
+  expect(await arrow.getAttribute('data-from-id')).toBe('array-0');
+  expect(await arrow.getAttribute('data-to-id')).toBe('hash--2');
   expect(path).toContain('C');
   expect(path).toContain('L');
   await expect(page.locator('.flow-arrow').first()).toHaveAttribute('data-route', 'rounded-elbow');

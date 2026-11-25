@@ -35,13 +35,13 @@
 - 本轮以算法可读性优先：画布不播放装饰性进入/弹性/描线/阴影动效；切步静态渲染确定性快照。箭头语义文本统一按界面语言本地化。
 - 坐标统一到 1200×720，数组沿中心主轴，前缀边界独立居中；哈希表改为最多 8 个不同前缀值可见的三列辅助网格。自适应 viewBox 扩展窄屏坐标域，首次打开 fit 镜头，后续 resize 保留用户平移/缩放。
 - 所有箭头在当前唯一查找/写入路径上关联 `fromId/toId`；renderer 从当前帧节点矩形边缘重新求端点。path 与弧长标签锚点由共享 route geometry 计算；暴力/前缀解法不再画语义错误的哈希箭头，前缀比较只聚焦两个边界。
-- 最终证据：E2E 22/22（17 个基础用例 + 5 个坐标/相机专项）；Jest 77/77、Vitest 9/9；type-check/build PASS；lint 0 errors（4 条既存 warning）。双视口布局、同一路径标签锚点及 resize 后相机留存均有 E2E/截图证据；本轮代码尚未推送。
+- 最终证据：E2E 22/22（17 个基础用例 + 5 个箭头/坐标专项）；Jest 77/77、Vitest 9/9；type-check/build PASS；lint 0 errors（4 条既存 warning）。覆盖双视口布局、节点 ID 端点、共享路径与标签几何、相机 resize 保留、十次快跳；坐标改版将随后提交部署。
 
 ## 之前的动效细化（2026-11-24）
 
 - 哈希查询流向使用明确的圆角正交路径，数据记录标签放在水平通道上方；路径端点根据源、目标稳定 ID 在 DOM 更新时从矩形边缘重算，避免旧帧坐标漂移。
 - 画布移除缩放、弹性、阴影、描线等装饰运动；焦点按状态立即更新，教学标题与 operation 徽标分离，reduced-motion 保留完整解说、焦点和代码联动。
-- 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 77 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS（Webpack 有过期 Browserslist 与 bundle size 警告）；`npm run qa:repo` PASS；`npm run test:e2e` PASS（22/22）；`git diff --check` PASS。旧坐标初版于 2026-11-25 完成本地验收；当前箭头审查改版尚未推送部署。
+- 本轮最终门禁：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 77 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验 100%）；`npm run build` PASS；`npm run qa:repo` PASS；Playwright 22/22 PASS。旧版 Actions/Pages 证据只对 2026-11-24 bundle 有效；本轮待提交，尚未部署。
 - `npm run test:coverage`：PASS，Jest 当前 lines 80.2%、functions 76%、branches 73.85%；Vitest 对 `validateInput` 的 lines/functions/branches 均为 100%。统计范围分别在 `jest.config.js` 与 `vitest.config.ts` 明确列出。
 - 本轮统一数据坐标：数组行 y=250，哈希槽由 y=412 起按三列固定槽排布，最多八种前缀值可见；数组和前缀边界分别居中。viewBox 按可视区比例扩展并首帧 fit；用户缩放/平移后 resize 不再重置镜头。箭头由稳定 nodeId 对定义，当前帧 renderer 重新计算真实矩形边缘端点；共享 route geometry 同时为 SVG path 和标签计算弧长位置。初始化哨兵 `0 × 1` 直接显示。
 - 运行证据：`npm run type-check` PASS；`npm run lint` PASS（0 errors、4 条既存 any warning）；`npm run test:coverage` PASS（10 suites / 75 tests）；`npm run test:unit:coverage` PASS（9 tests，输入校验模块 100%）；`npm run build` PASS；`npm run qa:repo` PASS；`npm run test:e2e` PASS（21/21）；`git diff --check` PASS。双视口截图、快速跳步截图与代码均在本地工作区，坐标重构尚未推送部署。
@@ -74,4 +74,4 @@ B6 权重折算：`(5/5×10)+(4/5×15)+(5/5×15)+(4/5×15)+(5/5×10)+(5/5×10)+(
 
 ## 结论
 
-**本地 PASS**。AC-001~AC-023 有本地自动化或对应证据；2026-11-26 坐标与箭头审查版本地 22 项 E2E、Jest 76 项、Vitest 9 项、类型、lint、build 均通过。该版尚未推送，不能声称已部署；线上仍为此前 Actions run `45254619548` 生成的 bundle。
+**本地 PASS**。AC-001~AC-023 有本地自动化或对应证据；2026-11-26 坐标与箭头审查版本地 22 项 E2E、Jest 77 项、Vitest 9 项、类型、lint、build 均通过。该版尚未推送，不能声称已部署；线上仍为此前 Actions run `45254619548` 生成的 bundle。

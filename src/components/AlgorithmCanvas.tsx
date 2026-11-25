@@ -10,7 +10,7 @@ interface Props {
 }
 
 const nodeWidth = (node: StepNode) => node.width ?? (node.id.startsWith('hash-') ? 84 : node.id.startsWith('prefix-') ? 92 : 72);
-const arrowLabelPoint = (arrow: { from: { x: number; y: number }; to: { x: number; y: number }; route?: 'rounded-elbow' | 'straight' | 'curve'; curve?: number }) => arrowPoint(arrow, 0.5);
+const arrowLabelPoint = (arrow: { from?: { x: number; y: number }; to?: { x: number; y: number }; route?: 'rounded-elbow' | 'straight' | 'curve'; curve?: number }) => arrow ? arrowPoint(arrow, 0.5) : { x: 0, y: 0 };
 const algorithmLabel = (step: AlgorithmStep): { id: string; text: string; x: number; y: number }[] => {
   const arrayNodes = step.frame.nodes.filter((node) => node.id.startsWith('array-'));
   const hashNodes = step.frame.nodes.filter((node) => node.id.startsWith('hash-'));
@@ -124,7 +124,7 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step }) => {
       .text((node) => node.badge ?? '');
 
     const nodeById = new Map(step.frame.nodes.map((node) => [node.id, node]));
-    const arrows = step.frame.arrows.filter((arrow) => arrow.from && arrow.to);
+    const arrows = step.frame.arrows;
     const arrowPaths = root.select<SVGGElement>('.layer-arrows').selectAll<SVGPathElement, typeof arrows[number]>('path.flow-arrow')
       .data(arrows, (arrow) => arrow.id)
       .join(
@@ -133,9 +133,14 @@ export const AlgorithmCanvas: React.FC<Props> = ({ step }) => {
         (exit) => exit.remove(),
       );
     const nodeBounds = new Map(step.frame.nodes.map((node) => [node.id, { x: node.x, y: node.y, width: nodeWidth(node), height: node.height ?? 48 }]));
-    const routedArrows = arrows.map((arrow) => ({ ...arrow, geometry: arrow.fromId && arrow.toId ? routeBetweenNodes({ fromId: arrow.fromId, toId: arrow.toId, route: arrow.route }, nodeBounds) : undefined }));
+    const routedArrows = arrows.flatMap((arrow) => {
+      const geometry = routeBetweenNodes(arrow, nodeBounds);
+      return geometry ? [{ ...arrow, geometry }] : [];
+    });
     const routedArrowById = new Map(routedArrows.map((arrow) => [arrow.id, arrow]));
     arrowPaths.attr('data-arrow-id', (arrow) => arrow.id)
+      .attr('data-from-id', (arrow) => arrow.fromId)
+      .attr('data-to-id', (arrow) => arrow.toId)
       .attr('data-route', (arrow) => arrow.route ?? 'straight')
       .attr('d', (arrow) => {
         const routed = routedArrowById.get(arrow.id);

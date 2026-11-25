@@ -70,11 +70,10 @@ describe('buildAlgorithmSteps', () => {
         expect(arrow.kind).toBe('data-flow');
         expect(source).toBeDefined();
         const target = step.frame.nodes.find((node) => node.id === `hash-${step.binding.variables.target ?? step.binding.variables.sum}`);
-        expect(arrow.from.y).toBe(source!.y + source!.height! / 2);
         expect(target).toBeDefined();
-        expect(arrow.to.x).toBeCloseTo(target?.x ?? 0, 5);
-        expect(arrow.to.y).toBe(target!.y - target!.height! / 2);
-        expect(arrow.from.y).toBeLessThan(arrow.to.y);
+        expect(arrow.fromId).toBe(source?.id);
+        expect(arrow.toId).toBe(target?.id);
+        expect(arrow.fromId).not.toEqual(arrow.toId);
       });
     });
   });
@@ -123,18 +122,20 @@ describe('buildAlgorithmSteps', () => {
     });
   });
 
-  it('clips lookup flow to the target hash node boundary', () => {
+  it('derives lookup endpoints from the source and target node IDs per frame', () => {
     const steps = buildAlgorithmSteps('hash-map', [1, 2, 3], 3);
     const lookup = steps.find((step) => step.operation === 'lookup' && step.binding.variables.index === 1)!;
-    const target = lookup.frame.nodes.find((node) => node.id === 'hash-0')!;
-    const source = lookup.frame.nodes.find((node) => node.id === 'array-1')!;
     const arrow = lookup.frame.arrows[0];
-    expect(routeBetweenNodes(arrow, new Map(lookup.frame.nodes.map((node) => [node.id, { x: node.x, y: node.y, width: node.width!, height: node.height! }])))).toEqual({
-      from: { x: source.x, y: source.y + 24 },
-      to: { x: target.x, y: target.y - 24 },
-      route: 'rounded-elbow',
-      curve: undefined,
-    });
+    const nodeBounds = new Map(lookup.frame.nodes.map((node) => [node.id, { x: node.x, y: node.y, width: node.width!, height: node.height! }]));
+    const geometry = routeBetweenNodes(arrow, nodeBounds)!;
+    const movedNodes = new Map([...nodeBounds.entries()].map(([id, node]) => [id, { ...node, y: node.y + 20 }]));
+    const movedGeometry = routeBetweenNodes(arrow, movedNodes)!;
+    expect(arrow.fromId).toBe('array-1');
+    expect(arrow.toId).toBe('hash-0');
+    expect(geometry.from.y).toBe(nodeBounds.get(arrow.fromId)!.y + 24);
+    expect(geometry.to.y).toBe(nodeBounds.get(arrow.toId)!.y - 24);
+    expect(movedGeometry.from.y).toBe(geometry.from.y + 20);
+    expect(movedGeometry.to.y).toBe(geometry.to.y + 20);
   });
 
   it('uses a stable idle sentinel node for every hash frame before reads', () => {
