@@ -65,7 +65,7 @@ B6 权重折算：`(5/5×10)+(4/5×15)+(5/5×15)+(4/5×15)+(5/5×10)+(5/5×10)+(
 | AC-001 | PASS | E2E-001 双视口空间预算断言；本轮另保存 1366×768 与 1920×1080 实际布局截图 |
 | AC-002~005 | PASS | E2E-002/014 链接、Star 与失败缓存回退断言 |
 | AC-006~014 | PASS | E2E-003~013 覆盖解法切换、输入、代码语言、交互、速度记忆、二维码和配色 |
-| AC-015 | PASS | Pages workflow 含 lint/type-check、Jest/Vitest、Playwright 门禁及正式部署；Actions run `45253954625` PASS |
+| AC-015 | PASS | Pages workflow 含 lint/type-check、Jest/Vitest、Playwright 门禁及正式部署；Actions run `45701486876` PASS |
 | AC-016~019 | PASS | lint、type-check、build、Jest/Vitest coverage、Playwright E2E 全绿；README、测试与验收文档已核对 |
 | AC-020 | PASS | 新增 `tests/unit/utils/validateInput.test.ts` 并由 Vitest 执行 |
 | AC-021 | PASS | 新增 `vitest.config.ts` 与 package scripts；Vitest 9 项测试通过、目标覆盖率 100% |
@@ -74,4 +74,4 @@ B6 权重折算：`(5/5×10)+(4/5×15)+(5/5×15)+(4/5×15)+(5/5×10)+(5/5×10)+(
 
 ## 结论
 
-**本地 PASS**。AC-001~AC-023 有本地自动化或对应证据；2026-11-26 坐标与箭头审查版本地 22 项 E2E、Jest 77 项、Vitest 9 项、类型、lint、build 均通过。该版尚未推送，不能声称已部署；线上仍为此前 Actions run `45254619548` 生成的 bundle。
+**本地 PASS**。AC-001~AC-023 有本地自动化或对应证据；2026-11-26 坐标与箭头审查版本地 22 项 E2E、Jest 77 项、Vitest 9 项、类型、lint、build 均通过。该版尚未推送，不能声称已部署；线上为本次箭头审查提交生成的 bundle `main.4ad1234c550d32af61c2.js`。
